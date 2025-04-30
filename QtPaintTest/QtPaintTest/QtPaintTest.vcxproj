@@ -65,7 +65,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -73,7 +73,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -108,9 +108,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Utils\ClipFileLoad.cpp" />
+    <ClCompile Include="Utils\ClipFileSave.cpp" />
+    <ClCompile Include="Utils\clipper.svg.cpp" />
     <QtRcc Include="QtPaintTest.qrc" />
     <QtUic Include="QtPaintTest.ui" />
     <QtMoc Include="QtPaintTest.h" />
+    <ClCompile Include="Clipper2Lib\src\clipper.engine.cpp" />
+    <ClCompile Include="Clipper2Lib\src\clipper.offset.cpp" />
+    <ClCompile Include="Clipper2Lib\src\clipper.rectclip.cpp" />
     <ClCompile Include="QtPaintTest.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
@@ -123,6 +129,15 @@
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Utils\ClipFileLoad.h" />
+    <ClInclude Include="Utils\ClipFileSave.h" />
+    <ClInclude Include="Utils\clipper.svg.h" />
+    <ClInclude Include="Utils\clipper.svg.utils.h" />
+    <ClInclude Include="Utils\Colors.h" />
+    <ClInclude Include="Utils\CommonUtils.h" />
+    <ClInclude Include="Utils\Timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

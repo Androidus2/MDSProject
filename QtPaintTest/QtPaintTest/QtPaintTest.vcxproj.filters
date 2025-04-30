@@ -21,6 +21,12 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
+    <Filter Include="ClipperSRC">
+      <UniqueIdentifier>{29a3cd17-0ff1-4d8d-a80d-34e3e584405a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ClipperUtils">
+      <UniqueIdentifier>{4c505930-2ce1-4daf-93ca-9ea3fe3154a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="QtPaintTest.qrc">
@@ -37,6 +43,47 @@
     <ClCompile Include="QtPaintTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Clipper2Lib\src\clipper.engine.cpp">
+      <Filter>ClipperSRC</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipper2Lib\src\clipper.offset.cpp">
+      <Filter>ClipperSRC</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipper2Lib\src\clipper.rectclip.cpp">
+      <Filter>ClipperSRC</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ClipFileLoad.cpp">
+      <Filter>ClipperUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ClipFileSave.cpp">
+      <Filter>ClipperUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\clipper.svg.cpp">
+      <Filter>ClipperUtils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Utils\ClipFileLoad.h">
+      <Filter>ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\ClipFileSave.h">
+      <Filter>ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\clipper.svg.h">
+      <Filter>ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\clipper.svg.utils.h">
+      <Filter>ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Colors.h">
+      <Filter>ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\CommonUtils.h">
+      <Filter>ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Timer.h">
+      <Filter>ClipperUtils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="main.cpp">
