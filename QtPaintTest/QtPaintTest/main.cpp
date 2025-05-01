@@ -278,6 +278,14 @@ public:
 
     void setTool(ToolType tool) { m_currentTool = tool; }
 
+    // Add color getter and setter
+    void setColor(const QColor& color) { m_brushColor = color; }
+    QColor currentColor() const { return m_brushColor; }
+
+    // Add brush width setter
+    void setBrushWidth(qreal width) { m_brushWidth = width; }
+
+
     int countTotalPoints() const {
         int totalPoints = 0;
 
@@ -386,24 +394,72 @@ private:
         if (path.elementCount() < 4) return;
 
         QPainterPath newPath;
-        QPointF lastPoint = path.elementAt(0);
+        const QPainterPath::Element& firstEl = path.elementAt(0);
+        QPointF lastPoint(firstEl.x, firstEl.y);
         newPath.moveTo(lastPoint);
+
+        // Calculate average segment length for adaptive simplification
+        qreal totalLength = 0;
+        int segments = 0;
 
         for (int i = 1; i < path.elementCount(); i += 3) {
             if (i + 2 >= path.elementCount()) break;
 
-            QPointF c1 = path.elementAt(i);
-            QPointF c2 = path.elementAt(i + 1);
-            QPointF end = path.elementAt(i + 2);
+            QPointF p0(path.elementAt(i - 1).x, path.elementAt(i - 1).y);
+            QPointF p3(path.elementAt(i + 2).x, path.elementAt(i + 2).y);
+            totalLength += QLineF(p0, p3).length();
+            segments++;
+        }
 
-            // Merge nearby points to simplify the path
-            if (QVector2D(c1 - lastPoint).length() < m_brushWidth * 2 &&
-                QVector2D(c2 - end).length() < m_brushWidth * 2) {
-                newPath.quadTo((lastPoint + end) / 2, end);
+        // Adaptive threshold based on brush width and segment density
+        qreal avgSegmentLength = segments > 0 ? totalLength / segments : m_brushWidth * 3;
+        qreal simplifyThreshold = qMin(m_brushWidth * 0.75, avgSegmentLength * 0.3);
+
+        // Process each cubic segment
+        for (int i = 1; i < path.elementCount(); i += 3) {
+            if (i + 2 >= path.elementCount()) break;
+
+            QPointF c1(path.elementAt(i).x, path.elementAt(i).y);
+            QPointF c2(path.elementAt(i + 1).x, path.elementAt(i + 1).y);
+            QPointF end(path.elementAt(i + 2).x, path.elementAt(i + 2).y);
+
+            // Calculate control point influence
+            qreal c1Influence = QLineF(lastPoint, c1).length();
+            qreal c2Influence = QLineF(end, c2).length();
+            qreal segmentLength = QLineF(lastPoint, end).length();
+
+            // Estimate curve flatness by comparing straight line to control point path
+            QLineF directLine(lastPoint, end);
+            qreal midPointT = 0.5;
+            QPointF bezierMidPoint = lastPoint * (1 - midPointT) * (1 - midPointT) * (1 - midPointT) +
+                c1 * 3 * (1 - midPointT) * (1 - midPointT) * midPointT +
+                c2 * 3 * (1 - midPointT) * midPointT * midPointT +
+                end * midPointT * midPointT * midPointT;
+            QPointF lineMidPoint = lastPoint + (end - lastPoint) * 0.5;
+            qreal deviation = QLineF(bezierMidPoint, lineMidPoint).length();
+
+            // Decision logic based on curve characteristics
+            if (deviation < simplifyThreshold && segmentLength < m_brushWidth * 3) {
+                // Nearly straight segment, use quadratic curve or line
+                if (deviation < simplifyThreshold * 0.3) {
+                    newPath.lineTo(end); // Very straight, just use line
+                }
+                else {
+                    // Use quadratic with calculated control point to maintain slight curve
+                    QPointF qc = bezierMidPoint + (bezierMidPoint - lineMidPoint) * 0.5;
+                    newPath.quadTo(qc, end);
+                }
+            }
+            else if (c1Influence < simplifyThreshold && c2Influence < simplifyThreshold) {
+                // Control points very close to endpoints, simplify
+                QPointF midControl = (c1 + c2) * 0.5;
+                newPath.quadTo(midControl, end);
             }
             else {
+                // Preserve the original cubic curve
                 newPath.cubicTo(c1, c2, end);
             }
+
             lastPoint = end;
         }
 
@@ -434,7 +490,7 @@ private:
         // Create the temporary path item for visual feedback
         m_tempPathItem = new QGraphicsPathItem();
         QPen tempPen(m_brushColor, m_brushWidth);
-        tempPen.setStyle(Qt::DotLine);
+        //tempPen.setStyle(Qt::DotLine);
         m_tempPathItem->setPen(tempPen);
         addItem(m_tempPathItem);
 
@@ -507,9 +563,9 @@ private:
         // Create temporary path for visual feedback
         m_tempEraserPathItem = new QGraphicsPathItem();
         QPen tempPen(Qt::red, m_brushWidth);
-        tempPen.setStyle(Qt::DotLine);
-		QColor tempColor = Qt::red;
-		tempColor.lighter(150); // Make temp path slightly lighter
+        //tempPen.setStyle(Qt::DotLine);
+        QColor tempColor = Qt::red;
+        tempColor.lighter(150); // Make temp path slightly lighter
         tempPen.setColor(tempColor); // Make temp path slightly lighter
         m_tempEraserPathItem->setPen(tempPen);
         m_tempEraserPathItem->setOpacity(0.5);
@@ -891,7 +947,9 @@ private:
             }
 
             // Create a yellow fill item with this path
-            FillItem* fill = new FillItem(Qt::yellow);
+            FillItem* fill = new FillItem(m_brushColor); // Instead of Qt::yellow
+            fill->setPath(fillPath);
+            addItem(fill);
             fill->setPath(fillPath);
             addItem(fill);
 
@@ -984,7 +1042,48 @@ private:
         toolbar->addAction("Eraser", [this] { m_scene.setTool(Eraser); });
         toolbar->addAction("Fill", [this] { m_scene.setTool(Fill); });
 
+        // Add color selection button
+        QToolButton* colorButton = new QToolButton;
+        colorButton->setText("Color");
+        colorButton->setIcon(createColorIcon(Qt::black));
+        colorButton->setIconSize(QSize(24, 24));
+        connect(colorButton, &QToolButton::clicked, this, &MainWindow::selectColor);
+        toolbar->addWidget(colorButton);
+        m_colorButton = colorButton;
+
+        // Add brush size control
+        toolbar->addSeparator();
+        toolbar->addWidget(new QLabel("Size:"));
+        QSpinBox* sizeSpinBox = new QSpinBox;
+        sizeSpinBox->setRange(1, 100);
+        sizeSpinBox->setValue(15); // Default brush width
+        sizeSpinBox->setSingleStep(1);
+        connect(sizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &MainWindow::setBrushSize);
+        toolbar->addWidget(sizeSpinBox);
+
         statusBar();
+    }
+
+    // Create a colored icon for the color button
+    QIcon createColorIcon(const QColor& color) {
+        QPixmap pixmap(24, 24);
+        pixmap.fill(color);
+        return QIcon(pixmap);
+    }
+
+    // Open color dialog for selection
+    void selectColor() {
+        QColor color = QColorDialog::getColor(m_scene.currentColor(), this, "Select Color");
+        if (color.isValid()) {
+            m_scene.setColor(color);
+            m_colorButton->setIcon(createColorIcon(color));
+        }
+    }
+
+    // Update brush size
+    void setBrushSize(int size) {
+        m_scene.setBrushWidth(size);
     }
 
     void setupTools() {
@@ -1013,6 +1112,7 @@ private:
     DrawingScene m_scene;
     QGraphicsView* m_view;
     QLabel* m_pointCountLabel;
+    QToolButton* m_colorButton;
 };
 
 // Application Entry
