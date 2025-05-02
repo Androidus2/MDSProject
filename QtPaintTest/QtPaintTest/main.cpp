@@ -1,6 +1,7 @@
 #include <QtWidgets>
 #include <clipper2/clipper.h>
 #include <iostream>
+#include <QSvgGenerator>
 
 using namespace Clipper2Lib;
 
@@ -1024,10 +1025,11 @@ private:
 
 class MainWindow : public QMainWindow {
 public:
-    MainWindow() {
+    MainWindow() : m_currentFilePath("") {
         setupUI();
         setupTools();
         setupPointCounter();
+        setupMenus();
     }
 
 private:
@@ -1065,6 +1067,52 @@ private:
         statusBar();
     }
 
+    void setupMenus() {
+        // Create File menu
+        QMenu* fileMenu = menuBar()->addMenu("&File");
+
+        // New action
+        QAction* newAction = fileMenu->addAction("&New");
+        newAction->setShortcut(QKeySequence::New);
+        connect(newAction, &QAction::triggered, this, &MainWindow::newDrawing);
+
+        // Open action
+        QAction* openAction = fileMenu->addAction("&Open...");
+        openAction->setShortcut(QKeySequence::Open);
+        connect(openAction, &QAction::triggered, this, &MainWindow::loadDrawing);
+
+        // Save action
+        QAction* saveAction = fileMenu->addAction("&Save");
+        saveAction->setShortcut(QKeySequence::Save);
+        connect(saveAction, &QAction::triggered, this, &MainWindow::saveDrawing);
+
+        // Save As action
+        QAction* saveAsAction = fileMenu->addAction("Save &As...");
+        saveAsAction->setShortcut(QKeySequence::SaveAs);
+        connect(saveAsAction, &QAction::triggered, this, &MainWindow::saveDrawingAs);
+
+        fileMenu->addSeparator();
+
+        // Export submenu
+        QMenu* exportMenu = fileMenu->addMenu("&Export");
+
+        QAction* exportSVG = exportMenu->addAction("Export as &SVG...");
+        connect(exportSVG, &QAction::triggered, this, &MainWindow::exportSVG);
+
+        QAction* exportPNG = exportMenu->addAction("Export as &PNG...");
+        connect(exportPNG, &QAction::triggered, this, &MainWindow::exportPNG);
+
+        QAction* exportJPEG = exportMenu->addAction("Export as &JPEG...");
+        connect(exportJPEG, &QAction::triggered, this, &MainWindow::exportJPEG);
+
+        fileMenu->addSeparator();
+
+        // Exit action
+        QAction* exitAction = fileMenu->addAction("&Exit");
+        exitAction->setShortcut(QKeySequence::Quit);
+        connect(exitAction, &QAction::triggered, this, &QWidget::close);
+    }
+
     // Create a colored icon for the color button
     QIcon createColorIcon(const QColor& color) {
         QPixmap pixmap(24, 24);
@@ -1072,7 +1120,6 @@ private:
         return QIcon(pixmap);
     }
 
-    // Open color dialog for selection
     void selectColor() {
         QColor color = QColorDialog::getColor(m_scene.currentColor(), this, "Select Color");
         if (color.isValid()) {
@@ -1081,7 +1128,6 @@ private:
         }
     }
 
-    // Update brush size
     void setBrushSize(int size) {
         m_scene.setBrushWidth(size);
     }
@@ -1109,10 +1155,310 @@ private:
         m_pointCountLabel->setText(QString("Points: %1").arg(count));
     }
 
+    // File operations
+    void newDrawing() {
+        if (maybeSave()) {
+            m_scene.clear();
+            m_currentFilePath = "";
+            setWindowTitle("Qt Vector Drawing - Untitled");
+            updatePointCounter();
+        }
+    }
+
+    void loadDrawing() {
+        if (maybeSave()) {
+            QString fileName = QFileDialog::getOpenFileName(this,
+                "Open Drawing", "", "Qt Vector Drawing (*.qvd)");
+
+            if (!fileName.isEmpty()) {
+                loadFile(fileName);
+            }
+        }
+    }
+
+    void saveDrawing() {
+        if (m_currentFilePath.isEmpty()) {
+            saveDrawingAs();
+        }
+        else {
+            saveFile(m_currentFilePath);
+        }
+    }
+
+    void saveDrawingAs() {
+        QString fileName = QFileDialog::getSaveFileName(this,
+            "Save Drawing", "", "Qt Vector Drawing (*.qvd)");
+
+        if (!fileName.isEmpty()) {
+            if (!fileName.endsWith(".qvd", Qt::CaseInsensitive)) {
+                fileName += ".qvd";
+            }
+            saveFile(fileName);
+        }
+    }
+
+    bool maybeSave() {
+        if (m_scene.countTotalPoints() > 0) {
+            QMessageBox::StandardButton response = QMessageBox::question(
+                this, "Save Changes", "Do you want to save your changes?",
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel
+            );
+
+            if (response == QMessageBox::Save) {
+                return saveDrawing(), true;
+            }
+            else if (response == QMessageBox::Cancel) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool saveFile(const QString& fileName) {
+        QFile file(fileName);
+        if (!file.open(QIODevice::WriteOnly)) {
+            QMessageBox::warning(this, "Save Error",
+                "Unable to open file for writing: " + file.errorString());
+            return false;
+        }
+
+        // Create JSON document to store drawing
+        QJsonObject root;
+        QJsonArray items;
+
+        // Store each drawing item
+        for (QGraphicsItem* item : m_scene.items()) {
+            if (StrokeItem* stroke = dynamic_cast<StrokeItem*>(item)) {
+                QJsonObject itemObj;
+
+                // Store type
+                itemObj["type"] = stroke->isOutlined() ? "filled" : "stroke";
+
+                // Store color
+                QColor color = stroke->color();
+                itemObj["color"] = color.name();
+                itemObj["alpha"] = color.alpha();
+
+                // Store width
+                itemObj["width"] = stroke->width();
+
+                // Store path data
+                QJsonArray pathData;
+                QPainterPath path = stroke->path();
+                for (int i = 0; i < path.elementCount(); ++i) {
+                    const QPainterPath::Element& el = path.elementAt(i);
+                    QJsonObject point;
+                    point["x"] = el.x;
+                    point["y"] = el.y;
+                    point["type"] = static_cast<int>(el.type);
+                    pathData.append(point);
+                }
+                itemObj["path"] = pathData;
+
+                // Add to items array
+                items.append(itemObj);
+            }
+        }
+
+        root["items"] = items;
+
+        // Write JSON to file
+        QJsonDocument doc(root);
+        file.write(doc.toJson());
+
+        m_currentFilePath = fileName;
+        setWindowTitle("Qt Vector Drawing - " + QFileInfo(fileName).fileName());
+        statusBar()->showMessage("Drawing saved", 2000);
+        return true;
+    }
+
+    bool loadFile(const QString& fileName) {
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly)) {
+            QMessageBox::warning(this, "Load Error",
+                "Unable to open file: " + file.errorString());
+            return false;
+        }
+
+        // Read JSON data
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        if (doc.isNull()) {
+            QMessageBox::warning(this, "Load Error", "Invalid file format");
+            return false;
+        }
+
+        // Clear current scene
+        m_scene.clear();
+
+        // Parse JSON and recreate items
+        QJsonObject root = doc.object();
+        QJsonArray items = root["items"].toArray();
+
+        for (const QJsonValue& itemValue : items) {
+            QJsonObject itemObj = itemValue.toObject();
+
+            // Get type
+            QString type = itemObj["type"].toString();
+
+            // Get color
+            QColor color(itemObj["color"].toString());
+            color.setAlpha(itemObj["alpha"].toInt(255));
+
+            // Get width
+            qreal width = itemObj["width"].toDouble();
+
+            // Create appropriate item
+            StrokeItem* item;
+            if (type == "filled" || width <= 0) {
+                item = new FillItem(color);
+            }
+            else {
+                item = new StrokeItem(color, width);
+            }
+
+            // Reconstruct path
+            QPainterPath path;
+            QJsonArray pathData = itemObj["path"].toArray();
+            bool firstPoint = true;
+
+            for (int i = 0; i < pathData.size(); ++i) {
+                QJsonObject point = pathData[i].toObject();
+                qreal x = point["x"].toDouble();
+                qreal y = point["y"].toDouble();
+                int elementType = point["type"].toInt();
+
+                switch (elementType) {
+                case QPainterPath::MoveToElement:
+                    path.moveTo(x, y);
+                    firstPoint = false;
+                    break;
+                case QPainterPath::LineToElement:
+                    if (firstPoint) {
+                        path.moveTo(x, y);
+                        firstPoint = false;
+                    }
+                    else {
+                        path.lineTo(x, y);
+                    }
+                    break;
+                case QPainterPath::CurveToElement:
+                    if (i + 2 < pathData.size()) {
+                        QJsonObject c1 = pathData[i].toObject();
+                        QJsonObject c2 = pathData[i + 1].toObject();
+                        QJsonObject endPoint = pathData[i + 2].toObject();
+
+                        path.cubicTo(
+                            c1["x"].toDouble(), c1["y"].toDouble(),
+                            c2["x"].toDouble(), c2["y"].toDouble(),
+                            endPoint["x"].toDouble(), endPoint["y"].toDouble()
+                        );
+
+                        i += 2; // Skip the next two points as we've used them
+                    }
+                    break;
+                }
+            }
+
+            item->setPath(path);
+            if (type == "filled") {
+                item->setOutlined(true);
+            }
+
+            m_scene.addItem(item);
+        }
+
+        m_currentFilePath = fileName;
+        setWindowTitle("Qt Vector Drawing - " + QFileInfo(fileName).fileName());
+        updatePointCounter();
+        statusBar()->showMessage("Drawing loaded", 2000);
+        return true;
+    }
+
+    void exportSVG() {
+        QString fileName = QFileDialog::getSaveFileName(this,
+            "Export SVG", "", "SVG Files (*.svg)");
+
+        if (!fileName.isEmpty()) {
+            if (!fileName.endsWith(".svg", Qt::CaseInsensitive)) {
+                fileName += ".svg";
+            }
+
+            QSvgGenerator generator;
+            generator.setFileName(fileName);
+            generator.setSize(QSize(m_scene.width(), m_scene.height()));
+            generator.setViewBox(m_scene.sceneRect());
+            generator.setTitle("Qt Vector Drawing");
+            generator.setDescription("Created with Qt Vector Drawing App");
+
+            QPainter painter;
+            painter.begin(&generator);
+            painter.setRenderHint(QPainter::Antialiasing);
+            m_scene.render(&painter);
+            painter.end();
+
+            statusBar()->showMessage("Exported to SVG", 2000);
+        }
+    }
+
+    void exportPNG() {
+        QString fileName = QFileDialog::getSaveFileName(this,
+            "Export PNG", "", "PNG Files (*.png)");
+
+        if (!fileName.isEmpty()) {
+            if (!fileName.endsWith(".png", Qt::CaseInsensitive)) {
+                fileName += ".png";
+            }
+
+            QRect rect = m_scene.sceneRect().toRect();
+            QImage image(rect.size(), QImage::Format_ARGB32_Premultiplied);
+            image.fill(Qt::white);
+
+            QPainter painter(&image);
+            painter.setRenderHint(QPainter::Antialiasing);
+            m_scene.render(&painter);
+            painter.end();
+
+            image.save(fileName);
+            statusBar()->showMessage("Exported to PNG", 2000);
+        }
+    }
+
+    void exportJPEG() {
+        QString fileName = QFileDialog::getSaveFileName(this,
+            "Export JPEG", "", "JPEG Files (*.jpg)");
+
+        if (!fileName.isEmpty()) {
+            if (!fileName.endsWith(".jpg", Qt::CaseInsensitive) &&
+                !fileName.endsWith(".jpeg", Qt::CaseInsensitive)) {
+                fileName += ".jpg";
+            }
+
+            QRect rect = m_scene.sceneRect().toRect();
+            QImage image(rect.size(), QImage::Format_RGB32);
+            image.fill(Qt::white); // JPEG doesn't support transparency
+
+            QPainter painter(&image);
+            painter.setRenderHint(QPainter::Antialiasing);
+            m_scene.render(&painter);
+            painter.end();
+
+            // Show quality dialog
+            bool ok;
+            int quality = QInputDialog::getInt(this, "JPEG Quality",
+                "Select quality (0-100):", 90, 0, 100, 1, &ok);
+
+            if (ok) {
+                image.save(fileName, "JPEG", quality);
+                statusBar()->showMessage("Exported to JPEG", 2000);
+            }
+        }
+    }
+
     DrawingScene m_scene;
     QGraphicsView* m_view;
     QLabel* m_pointCountLabel;
     QToolButton* m_colorButton;
+    QString m_currentFilePath;
 };
 
 // Application Entry
@@ -1121,6 +1467,7 @@ private:
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     MainWindow win;
+    win.setWindowTitle("Qt Vector Drawing - Untitled");
     win.show();
     return app.exec();
 }
