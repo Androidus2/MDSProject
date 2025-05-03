@@ -108,6 +108,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DrawingEngineUtils.cpp" />
+    <ClCompile Include="DrawingScene.cpp" />
+    <ClCompile Include="FileIOOperations.cpp" />
+    <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="StrokeItem.cpp" />
     <ClCompile Include="Utils\ClipFileLoad.cpp" />
     <ClCompile Include="Utils\ClipFileSave.cpp" />
     <ClCompile Include="Utils\clipper.svg.cpp" />
@@ -123,14 +128,19 @@
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
     </ClCompile>
-    <QtMoc Include="main.cpp">
+    <ClCompile Include="main.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
-    </QtMoc>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DrawingEngineUtils.h" />
+    <QtMoc Include="DrawingScene.h" />
+    <ClInclude Include="FileIOOperations.h" />
+    <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="StrokeItem.h" />
     <ClInclude Include="Utils\ClipFileLoad.h" />
     <ClInclude Include="Utils\ClipFileSave.h" />
     <ClInclude Include="Utils\clipper.svg.h" />
