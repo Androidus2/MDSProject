@@ -5,6 +5,7 @@
 class MainWindow : public QMainWindow {
 public:
     MainWindow();
+    ~MainWindow();
 
 private:
     void setupUI();
@@ -18,4 +19,5 @@ private:
     DrawingScene m_scene;
     QGraphicsView* m_view;
     QToolButton* m_colorButton;
+
 };

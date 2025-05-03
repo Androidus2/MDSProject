@@ -20,29 +20,34 @@ QColor DrawingScene::currentColor() const { return m_brushColor; }
 void DrawingScene::setBrushWidth(qreal width) { m_brushWidth = width; }
 
 // Handle mouse press event
-void DrawingScene::mousePressEvent(QGraphicsSceneMouseEvent* event)  {
+void DrawingScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     if (event->button() != Qt::LeftButton) return;
 
     switch (m_currentTool) {
     case Brush: startBrushStroke(event->scenePos()); break;
     case Eraser: startEraserStroke(event->scenePos()); break;
     case Fill: applyFill(event->scenePos()); break;
+    case Select: startSelection(event->scenePos()); break;
     }
     QGraphicsScene::mousePressEvent(event);
 }
+
 // Handle mouse move event
 void DrawingScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
     switch (m_currentTool) {
     case Brush: updateBrushStroke(event->scenePos()); break;
     case Eraser: updateEraserStroke(event->scenePos()); break;
+    case Select: updateSelection(event->scenePos()); break;
     }
     QGraphicsScene::mouseMoveEvent(event);
 }
+
 // Handle mouse release event
 void DrawingScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
     switch (m_currentTool) {
     case Brush: finalizeBrushStroke(); break;
     case Eraser: finalizeEraserStroke(); break;
+    case Select: finalizeSelection(); break;
     }
     QGraphicsScene::mouseReleaseEvent(event);
 }
@@ -616,5 +621,171 @@ void DrawingScene::applyFill(const QPointF& pos) {
         fill->setPath(fillPath);
         addItem(fill);
 
+    }
+}
+// Selection Implementation
+void DrawingScene::startSelection(const QPointF& pos) {
+    // If clicking on a selected item, start moving
+    QList<QGraphicsItem*> itemsAtPos = items(pos);
+
+    bool clickedOnSelected = false;
+    for (QGraphicsItem* item : itemsAtPos) {
+        if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
+            if (m_selectedItems.contains(stroke)) {
+                clickedOnSelected = true;
+                m_isMovingSelection = true;
+                m_lastMousePos = pos;
+                break;
+            }
+        }
+    }
+
+    // If not clicking on selected item, start new selection
+    if (!clickedOnSelected) {
+        // Clear previous selection
+        if (!(QApplication::keyboardModifiers() & Qt::ShiftModifier)) {
+            clearSelection();
+        }
+
+        // Start new selection rectangle
+        m_isSelecting = true;
+        m_selectionStartPos = pos;
+
+        if (!m_selectionRect) {
+            m_selectionRect = new QGraphicsRectItem();
+            m_selectionRect->setPen(QPen(Qt::DashLine));
+            m_selectionRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
+            addItem(m_selectionRect);
+        }
+
+        m_selectionRect->setRect(QRectF(pos, QSizeF(0, 0)));
+        m_selectionRect->show();
+    }
+}
+
+void DrawingScene::updateSelection(const QPointF& pos) {
+    if (m_isSelecting && m_selectionRect) {
+        // Update selection rectangle
+        QRectF rect = QRectF(
+            QPointF(qMin(m_selectionStartPos.x(), pos.x()), qMin(m_selectionStartPos.y(), pos.y())),
+            QPointF(qMax(m_selectionStartPos.x(), pos.x()), qMax(m_selectionStartPos.y(), pos.y()))
+        );
+        m_selectionRect->setRect(rect);
+    }
+    else if (m_isMovingSelection) {
+        // Move selected items
+        QPointF delta = pos - m_lastMousePos;
+        for (StrokeItem* item : m_selectedItems) {
+            item->moveBy(delta.x(), delta.y());
+        }
+        m_lastMousePos = pos;
+    }
+}
+
+void DrawingScene::finalizeSelection() {
+    if (m_isSelecting && m_selectionRect) {
+        // Get items within selection rectangle
+        QList<QGraphicsItem*> itemsInRect = items(m_selectionRect->rect());
+
+        for (QGraphicsItem* item : itemsInRect) {
+            if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
+                if (!m_selectedItems.contains(stroke)) {
+                    m_selectedItems.append(stroke);
+                }
+            }
+        }
+
+        // Hide selection rectangle
+        m_selectionRect->hide();
+        m_isSelecting = false;
+
+        // Highlight selected items
+        highlightSelectedItems(true);
+    }
+    else if (m_isMovingSelection) {
+        m_isMovingSelection = false;
+    }
+}
+
+void DrawingScene::moveSelectedItems(const QPointF& newPos) {
+    if (m_selectedItems.isEmpty()) return;
+
+    QPointF delta = newPos - m_lastMousePos;
+    for (StrokeItem* item : m_selectedItems) {
+        item->moveBy(delta.x(), delta.y());
+    }
+    m_lastMousePos = newPos;
+}
+
+void DrawingScene::clearSelection() {
+    highlightSelectedItems(false);
+    m_selectedItems.clear();
+}
+
+void DrawingScene::highlightSelectedItems(bool highlight) {
+    for (StrokeItem* item : m_selectedItems) {
+        if (highlight) {
+            // Store original pen and use a highlighted pen
+            item->setSelected(true);
+            item->setZValue(item->zValue() + 0.1); // Bring slightly forward
+        }
+        else {
+            item->setSelected(false);
+            item->setZValue(item->zValue() - 0.1); // Restore z-order
+        }
+    }
+}
+
+// Add this to your DrawingScene class
+void DrawingScene::keyPressEvent(QKeyEvent* event) {
+    if (m_currentTool == Select && !m_selectedItems.isEmpty()) {
+        switch (event->key()) {
+        case Qt::Key_Delete:
+            // Delete selected items
+            for (StrokeItem* item : m_selectedItems) {
+                removeItem(item);
+                delete item;
+            }
+            m_selectedItems.clear();
+            break;
+
+        case Qt::Key_Left:
+            // Move selection left
+            for (StrokeItem* item : m_selectedItems) {
+                item->moveBy(-1, 0);
+            }
+            break;
+
+        case Qt::Key_Right:
+            // Move selection right
+            for (StrokeItem* item : m_selectedItems) {
+                item->moveBy(1, 0);
+            }
+            break;
+
+        case Qt::Key_Up:
+            // Move selection up
+            for (StrokeItem* item : m_selectedItems) {
+                item->moveBy(0, -1);
+            }
+            break;
+
+        case Qt::Key_Down:
+            // Move selection down
+            for (StrokeItem* item : m_selectedItems) {
+                item->moveBy(0, 1);
+            }
+            break;
+        }
+    }
+
+    QGraphicsScene::keyPressEvent(event);
+}
+
+DrawingScene::~DrawingScene() {
+    // Clean up selection rectangle if it exists
+    if (m_selectionRect) {
+        delete m_selectionRect;
+        m_selectionRect = nullptr;
     }
 }

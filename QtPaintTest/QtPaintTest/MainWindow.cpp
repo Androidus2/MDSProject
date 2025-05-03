@@ -6,6 +6,9 @@ MainWindow::MainWindow() {
     setupTools();
     setupMenus();
 }
+MainWindow::~MainWindow() {
+    // Clean up resources if needed
+}
 
 void MainWindow::setupUI() {
     m_view = new QGraphicsView(&m_scene);
@@ -17,6 +20,7 @@ void MainWindow::setupUI() {
     toolbar->addAction("Brush", [this] { m_scene.setTool(Brush); });
     toolbar->addAction("Eraser", [this] { m_scene.setTool(Eraser); });
     toolbar->addAction("Fill", [this] { m_scene.setTool(Fill); });
+    toolbar->addAction("Select", [this] { m_scene.setTool(Select); });
 
     // Add color selection button
     QToolButton* colorButton = new QToolButton;

@@ -17,7 +17,7 @@ const int DEFAULT_BRUSH_SIZE = 15;
 const int JPEG_QUALITY_DEFAULT = 90;
 const double CLIPPER_SCALING = 1000.0;
 
-enum ToolType { Brush, Eraser, Fill };
+enum ToolType { Brush, Eraser, Fill,Select };
 
 class DrawingEngineUtils {
 public:

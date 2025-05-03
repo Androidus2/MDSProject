@@ -90,3 +90,28 @@ void StrokeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option
     // Draw the regular path first
     QGraphicsPathItem::paint(painter, option, widget);
 }
+
+void StrokeItem::setSelected(bool selected) {
+    if (selected == m_isSelected) return;
+
+    m_isSelected = selected;
+
+    if (selected) {
+        // Store original pen
+        m_originalPen = pen();
+
+        // Create highlight pen
+        QPen highlightPen = m_originalPen;
+        highlightPen.setColor(Qt::blue);
+        highlightPen.setWidth(m_originalPen.width() + 1);
+        highlightPen.setStyle(Qt::DashLine);
+
+        setPen(highlightPen);
+    }
+    else {
+        // Restore original pen
+        setPen(m_originalPen);
+    }
+
+    update();
+}

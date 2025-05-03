@@ -8,6 +8,7 @@ class DrawingScene : public QGraphicsScene {
     Q_OBJECT
 public:
     DrawingScene(QObject* parent = nullptr);
+    ~DrawingScene();
 
     void setTool(ToolType tool);
 
@@ -69,4 +70,21 @@ private:
     QTimer m_cooldownTimer;
     int m_cooldownInterval;
     float m_tangentStrength;
+
+    // Selection tool variables
+    QList<StrokeItem*> m_selectedItems;
+    QGraphicsRectItem* m_selectionRect = nullptr;
+    QPointF m_selectionStartPos;
+    bool m_isSelecting = false;
+    bool m_isMovingSelection = false;
+    QPointF m_lastMousePos;
+
+    // Selection Implementation
+    void startSelection(const QPointF& pos);
+    void updateSelection(const QPointF& pos);
+    void finalizeSelection();
+    void moveSelectedItems(const QPointF& newPos);
+    void clearSelection();
+    void highlightSelectedItems(bool highlight);
+    void keyPressEvent(QKeyEvent* event);
 };
