@@ -27,6 +27,12 @@
     <Filter Include="ClipperUtils">
       <UniqueIdentifier>{4c505930-2ce1-4daf-93ca-9ea3fe3154a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\DrawingEngine">
+      <UniqueIdentifier>{c28cf041-1134-4839-9572-59fffffc856a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DrawingEngine">
+      <UniqueIdentifier>{207e87ad-740d-43d5-9536-d76ace58f5ae}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="QtPaintTest.qrc">
@@ -61,6 +67,24 @@
     <ClCompile Include="Utils\clipper.svg.cpp">
       <Filter>ClipperUtils</Filter>
     </ClCompile>
+    <ClCompile Include="StrokeItem.cpp">
+      <Filter>Source Files\DrawingEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="DrawingScene.cpp">
+      <Filter>Source Files\DrawingEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FileIOOperations.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DrawingEngineUtils.cpp">
+      <Filter>Source Files\DrawingEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\ClipFileLoad.h">
@@ -84,10 +108,22 @@
     <ClInclude Include="Utils\Timer.h">
       <Filter>ClipperUtils</Filter>
     </ClInclude>
+    <ClInclude Include="StrokeItem.h">
+      <Filter>Header Files\DrawingEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="DrawingEngineUtils.h">
+      <Filter>Header Files\DrawingEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="MainWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileIOOperations.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="main.cpp">
-      <Filter>Source Files</Filter>
+    <QtMoc Include="DrawingScene.h">
+      <Filter>Header Files\DrawingEngine</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>
