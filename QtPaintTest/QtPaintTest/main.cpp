@@ -1386,6 +1386,7 @@ private:
             QSvgGenerator generator;
             generator.setFileName(fileName);
             generator.setSize(QSize(m_scene.width(), m_scene.height()));
+			generator.setViewBox(QRect(0, 0, m_scene.width(), m_scene.height()));
             generator.setTitle("Qt Vector Drawing");
             generator.setDescription("Created with Qt Vector Drawing App");
 
