@@ -6,7 +6,7 @@ int main(int argc, char* argv[]) {
     MainWindow win;
     win.setWindowTitle("Qt Vector Drawing - Untitled");
     win.show();
-    return app.exec();
+    return app.exec(); 
 }
 
 //#include "main.moc"

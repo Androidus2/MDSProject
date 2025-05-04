@@ -1,8 +1,16 @@
 #pragma once
 #include <QtWidgets>
 #include <clipper2/clipper.h>
+#include <QUndoCommand>
+#include <QUndoStack>
+#include <QList>
+
 #include "DrawingEngineUtils.h"
 #include "StrokeItem.h"
+
+// Forward declarations
+class QUndoStack;
+class StrokeItem;
 
 class DrawingScene : public QGraphicsScene {
     Q_OBJECT
@@ -18,6 +26,70 @@ public:
 
 	// Brush width setter
     void setBrushWidth(qreal width);
+
+    void setUndoStack(QUndoStack* stack);
+
+    // --- Command Classes for Undo/Redo ---
+    class AddCommand : public QUndoCommand {
+    public:
+        AddCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent = nullptr);
+        ~AddCommand();
+        void undo() override;
+        void redo() override;
+    private:
+        DrawingScene* myScene;
+        StrokeItem* myItem;
+        bool firstExecution;
+    };
+
+    class RemoveCommand : public QUndoCommand {
+    public:
+        // Used primarily for the inverse of AddCommand during undo
+        RemoveCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent = nullptr);
+        ~RemoveCommand();
+        void undo() override;
+        void redo() override;
+    private:
+        DrawingScene* myScene;
+        StrokeItem* myItem;
+    };
+
+    class EraseCommand : public QUndoCommand {
+    public:
+        EraseCommand(DrawingScene* scene,
+                     const QList<StrokeItem*>& originals,
+                     const QList<StrokeItem*>& results,
+                     QUndoCommand* parent = nullptr);
+        ~EraseCommand();
+        void undo() override;
+        void redo() override;
+    private:
+        DrawingScene* myScene;
+        QList<StrokeItem*> originalItems; // Items before erase
+        QList<StrokeItem*> resultItems;   // Items after erase
+        bool firstExecution;
+    };
+
+    class MoveCommand : public QUndoCommand {
+    public:
+        MoveCommand(DrawingScene* scene,
+                    const QList<StrokeItem*>& items,
+                    const QPointF& moveDelta,
+                    QUndoCommand* parent = nullptr);
+        ~MoveCommand();
+        void undo() override;
+        void redo() override;
+        bool mergeWith(const QUndoCommand* other) override;
+        int id() const override { return 1; } // ID for merging moves
+        
+        // Add a public accessor for getting number of items
+        int itemCount() const { return movedItems.size(); }
+
+    private:
+        DrawingScene* myScene;
+        QList<StrokeItem*> movedItems;
+        QPointF delta;
+    };
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
@@ -91,4 +163,9 @@ private:
     void clearSelection();
     void highlightSelectedItems(bool highlight);
     void keyPressEvent(QKeyEvent* event);
+
+    // --- Command Helper Function ---
+    void pushCommand(QUndoCommand* command);
+
+    QUndoStack* m_undoStack = nullptr; // Pointer to the undo stack
 };

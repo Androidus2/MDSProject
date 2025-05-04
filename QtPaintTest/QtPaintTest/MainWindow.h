@@ -1,5 +1,6 @@
 #pragma once
 #include <QtWidgets>
+#include <QUndoStack>
 #include "DrawingScene.h"
 
 class MainWindow : public QMainWindow {
@@ -19,5 +20,8 @@ private:
     DrawingScene m_scene;
     QGraphicsView* m_view;
     QToolButton* m_colorButton;
+    QUndoStack* m_undoStack;
+    QAction *m_undoAction;
+    QAction *m_redoAction;
 
 };

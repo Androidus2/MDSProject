@@ -1,10 +1,15 @@
 #include "MainWindow.h"
 #include "FileIOOperations.h"
+#include <QUndoStack>
 
 MainWindow::MainWindow() {
+    m_undoStack = new QUndoStack(this);
+
     setupUI();
     setupTools();
     setupMenus();
+
+    m_scene.setUndoStack(m_undoStack);
 }
 MainWindow::~MainWindow() {
     // Clean up resources if needed
@@ -51,8 +56,8 @@ void MainWindow::setupMenus() {
     // New action
     QAction* newAction = fileMenu->addAction("&New");
     newAction->setShortcut(QKeySequence::New);
-	//connect(newAction, &QAction::triggered, this, &MainWindow::newDrawing);
 	connect(newAction, &QAction::triggered, this, [this]() {
+        m_undoStack->clear();
 		FileIOOperations::newDrawing(m_scene, *this);
 		});
 
@@ -60,6 +65,7 @@ void MainWindow::setupMenus() {
     QAction* openAction = fileMenu->addAction("&Open...");
     openAction->setShortcut(QKeySequence::Open);
 	connect(openAction, &QAction::triggered, this, [this]() {
+        m_undoStack->clear();
 		FileIOOperations::loadDrawing(m_scene, *this);
 		});
 
@@ -103,6 +109,26 @@ void MainWindow::setupMenus() {
     QAction* exitAction = fileMenu->addAction("&Exit");
     exitAction->setShortcut(QKeySequence::Quit);
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
+
+    // --- Add Edit Menu for Undo/Redo --- 
+    QMenu* editMenu = menuBar()->addMenu("&Edit");
+
+    m_undoAction = m_undoStack->createUndoAction(this, "&Undo");
+    m_undoAction->setShortcuts(QKeySequence::Undo);
+    editMenu->addAction(m_undoAction);
+
+    m_redoAction = m_undoStack->createRedoAction(this, "&Redo");
+    m_redoAction->setShortcuts(QKeySequence::Redo);
+    editMenu->addAction(m_redoAction);
+
+    // Optional: Connect signals to enable/disable actions based on stack state
+    // Although createUndoAction/createRedoAction often handle this automatically,
+    // explicit connection ensures it.
+    connect(m_undoStack, &QUndoStack::canUndoChanged, m_undoAction, &QAction::setEnabled);
+    connect(m_undoStack, &QUndoStack::canRedoChanged, m_redoAction, &QAction::setEnabled);
+    // Initially disable actions
+    m_undoAction->setEnabled(m_undoStack->canUndo());
+    m_redoAction->setEnabled(m_undoStack->canRedo());
 }
 void MainWindow::setupTools() {
     m_scene.setSceneRect(-500, -500, 1000, 1000);
