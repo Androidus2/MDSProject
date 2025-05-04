@@ -242,19 +242,89 @@ void FileIOOperations::exportPNG(QGraphicsScene& scene, MainWindow& window) {
             fileName += ".png";
         }
 
-        QRect rect = scene.sceneRect().toRect();
-        QImage image(rect.size(), QImage::Format_ARGB32_Premultiplied);
-        image.fill(Qt::white);
+        QRectF sceneRect = scene.sceneRect();
 
-        QPainter painter(&image);
-        painter.setRenderHint(QPainter::Antialiasing);
-        scene.render(&painter);
-        painter.end();
+        // Create a dialog for resolution input
+        QDialog resDialog(&window);
+        resDialog.setWindowTitle("Set Export Resolution");
+        resDialog.setModal(true);
 
-        image.save(fileName);
-        window.statusBar()->showMessage("Exported to PNG", 2000);
+        QVBoxLayout* layout = new QVBoxLayout(&resDialog);
+
+        // Add width input
+        QHBoxLayout* widthLayout = new QHBoxLayout();
+        QLabel* widthLabel = new QLabel("Width:", &resDialog);
+        QSpinBox* widthInput = new QSpinBox(&resDialog);
+        widthInput->setRange(1, 10000);
+        widthInput->setValue(sceneRect.width());
+        widthLayout->addWidget(widthLabel);
+        widthLayout->addWidget(widthInput);
+
+        // Add height input
+        QHBoxLayout* heightLayout = new QHBoxLayout();
+        QLabel* heightLabel = new QLabel("Height:", &resDialog);
+        QSpinBox* heightInput = new QSpinBox(&resDialog);
+        heightInput->setRange(1, 10000);
+        heightInput->setValue(sceneRect.height());
+        heightLayout->addWidget(heightLabel);
+        heightLayout->addWidget(heightInput);
+
+        // Add aspect ratio checkbox
+        QCheckBox* keepAspectRatio = new QCheckBox("Keep aspect ratio", &resDialog);
+        keepAspectRatio->setChecked(true);
+
+        // Connect signals to maintain aspect ratio if checked
+        double aspectRatio = static_cast<double>(sceneRect.width()) / sceneRect.height();
+        QObject::connect(widthInput, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
+            if (keepAspectRatio->isChecked()) {
+                heightInput->blockSignals(true);
+                heightInput->setValue(qRound(value / aspectRatio));
+                heightInput->blockSignals(false);
+            }
+            });
+
+        QObject::connect(heightInput, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
+            if (keepAspectRatio->isChecked()) {
+                widthInput->blockSignals(true);
+                widthInput->setValue(qRound(value * aspectRatio));
+                widthInput->blockSignals(false);
+            }
+            });
+
+        // Add buttons
+        QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &resDialog);
+        QObject::connect(buttonBox, &QDialogButtonBox::accepted, &resDialog, &QDialog::accept);
+        QObject::connect(buttonBox, &QDialogButtonBox::rejected, &resDialog, &QDialog::reject);
+
+        // Add all widgets to dialog
+        layout->addLayout(widthLayout);
+        layout->addLayout(heightLayout);
+        layout->addWidget(keepAspectRatio);
+        layout->addWidget(buttonBox);
+
+        // Show dialog and proceed if accepted
+        if (resDialog.exec() == QDialog::Accepted) {
+            int width = widthInput->value();
+            int height = heightInput->value();
+
+            QImage image(width, height, QImage::Format_ARGB32_Premultiplied);
+            image.fill(Qt::white);
+
+            QPainter painter(&image);
+            painter.setRenderHint(QPainter::Antialiasing);
+            painter.setRenderHint(QPainter::SmoothPixmapTransform);
+
+            // Use the overloaded render method that maps source rectangle to target rectangle
+            QRectF targetRect(0, 0, width, height);
+            scene.render(&painter, targetRect, sceneRect, Qt::IgnoreAspectRatio);
+            painter.end();
+
+            image.save(fileName);
+            window.statusBar()->showMessage("Exported to PNG", 2000);
+        }
     }
 }
+
 void FileIOOperations::exportJPEG(QGraphicsScene& scene, MainWindow& window) {
     QString fileName = QFileDialog::getSaveFileName(&window,
         "Export JPEG", "", "JPEG Files (*.jpg)");
@@ -265,23 +335,92 @@ void FileIOOperations::exportJPEG(QGraphicsScene& scene, MainWindow& window) {
             fileName += ".jpg";
         }
 
-        QRect rect = scene.sceneRect().toRect();
-        QImage image(rect.size(), QImage::Format_RGB32);
-        image.fill(Qt::white); // JPEG doesn't support transparency
+        QRectF sceneRect = scene.sceneRect();
 
-        QPainter painter(&image);
-        painter.setRenderHint(QPainter::Antialiasing);
-        scene.render(&painter);
-        painter.end();
+        // Create a dialog for resolution input
+        QDialog resDialog(&window);
+        resDialog.setWindowTitle("Set Export Resolution");
+        resDialog.setModal(true);
 
-        // Show quality dialog
-        bool ok;
-        int quality = QInputDialog::getInt(&window, "JPEG Quality",
-            "Select quality (0-100):", 90, 0, 100, 1, &ok);
+        QVBoxLayout* layout = new QVBoxLayout(&resDialog);
 
-        if (ok) {
-            image.save(fileName, "JPEG", quality);
-            window.statusBar()->showMessage("Exported to JPEG", 2000);
+        // Add width input
+        QHBoxLayout* widthLayout = new QHBoxLayout();
+        QLabel* widthLabel = new QLabel("Width:", &resDialog);
+        QSpinBox* widthInput = new QSpinBox(&resDialog);
+        widthInput->setRange(1, 10000);
+        widthInput->setValue(sceneRect.width());
+        widthLayout->addWidget(widthLabel);
+        widthLayout->addWidget(widthInput);
+
+        // Add height input
+        QHBoxLayout* heightLayout = new QHBoxLayout();
+        QLabel* heightLabel = new QLabel("Height:", &resDialog);
+        QSpinBox* heightInput = new QSpinBox(&resDialog);
+        heightInput->setRange(1, 10000);
+        heightInput->setValue(sceneRect.height());
+        heightLayout->addWidget(heightLabel);
+        heightLayout->addWidget(heightInput);
+
+        // Add aspect ratio checkbox
+        QCheckBox* keepAspectRatio = new QCheckBox("Keep aspect ratio", &resDialog);
+        keepAspectRatio->setChecked(true);
+
+        // Connect signals to maintain aspect ratio if checked
+        double aspectRatio = static_cast<double>(sceneRect.width()) / sceneRect.height();
+        QObject::connect(widthInput, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
+            if (keepAspectRatio->isChecked()) {
+                heightInput->blockSignals(true);
+                heightInput->setValue(qRound(value / aspectRatio));
+                heightInput->blockSignals(false);
+            }
+            });
+
+        QObject::connect(heightInput, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
+            if (keepAspectRatio->isChecked()) {
+                widthInput->blockSignals(true);
+                widthInput->setValue(qRound(value * aspectRatio));
+                widthInput->blockSignals(false);
+            }
+            });
+
+        // Add buttons
+        QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &resDialog);
+        QObject::connect(buttonBox, &QDialogButtonBox::accepted, &resDialog, &QDialog::accept);
+        QObject::connect(buttonBox, &QDialogButtonBox::rejected, &resDialog, &QDialog::reject);
+
+        // Add all widgets to dialog
+        layout->addLayout(widthLayout);
+        layout->addLayout(heightLayout);
+        layout->addWidget(keepAspectRatio);
+        layout->addWidget(buttonBox);
+
+        // Show dialog and proceed if accepted
+        if (resDialog.exec() == QDialog::Accepted) {
+            int width = widthInput->value();
+            int height = heightInput->value();
+
+            // Show quality dialog
+            bool ok;
+            int quality = QInputDialog::getInt(&window, "JPEG Quality",
+                "Select quality (0-100):", 90, 0, 100, 1, &ok);
+
+            if (ok) {
+                QImage image(width, height, QImage::Format_RGB32);
+                image.fill(Qt::white); // JPEG doesn't support transparency
+
+                QPainter painter(&image);
+                painter.setRenderHint(QPainter::Antialiasing);
+                painter.setRenderHint(QPainter::SmoothPixmapTransform);
+
+                // Use the overloaded render method that maps source rectangle to target rectangle
+                QRectF targetRect(0, 0, width, height);
+                scene.render(&painter, targetRect, sceneRect, Qt::IgnoreAspectRatio);
+                painter.end();
+
+                image.save(fileName, "JPEG", quality);
+                window.statusBar()->showMessage("Exported to JPEG", 2000);
+            }
         }
     }
 }
