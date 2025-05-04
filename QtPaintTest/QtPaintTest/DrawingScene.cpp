@@ -1,4 +1,5 @@
 #include "DrawingScene.h"
+#include <fstream>
 
 DrawingScene::DrawingScene(QObject* parent)
     : QGraphicsScene(parent), m_currentTool(Brush),
@@ -10,10 +11,29 @@ DrawingScene::DrawingScene(QObject* parent)
 
     // Initialize key tracking
     m_moveSpeed = 1;
+
+    // Initialize transform state
+    m_transform.isTransforming = false;
+    m_transform.activeHandle = HandleNone;
 }
 
 // Set the current tool
-void DrawingScene::setTool(ToolType tool) { m_currentTool = tool; }
+void DrawingScene::setTool(ToolType tool) {
+    // If switching away from Select tool, clean up
+    if (m_currentTool == Select && tool != Select) {
+        if (m_transform.isTransforming) {
+            endTransform();
+        }
+        removeSelectionBox();
+    }
+
+    m_currentTool = tool;
+
+    // Clear selection if switching to a non-select tool
+    if (tool != Select) {
+        clearSelection();
+    }
+}
 
 // Add color getter and setter
 void DrawingScene::setColor(const QColor& color) { m_brushColor = color; }
@@ -26,6 +46,18 @@ void DrawingScene::setBrushWidth(qreal width) { m_brushWidth = width; }
 void DrawingScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     if (event->button() != Qt::LeftButton) return;
 
+    // When in Select mode, check for transform handles
+    if (m_currentTool == Select) {
+        TransformHandleType handleType = hitTestTransformHandle(event->scenePos());
+        if (handleType != HandleNone) {
+            // Start transform operation
+            startTransform(event->scenePos(), handleType);
+            event->accept();
+            return;
+        }
+    }
+
+    // Normal tool behavior
     switch (m_currentTool) {
     case Brush: startBrushStroke(event->scenePos()); break;
     case Eraser: startEraserStroke(event->scenePos()); break;
@@ -35,8 +67,15 @@ void DrawingScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     QGraphicsScene::mousePressEvent(event);
 }
 
-// Handle mouse move event
 void DrawingScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
+    // Handle transform operations
+    if (m_transform.isTransforming) {
+        updateTransform(event->scenePos());
+        event->accept();
+        return;
+    }
+
+    // Normal tool behavior
     switch (m_currentTool) {
     case Brush: updateBrushStroke(event->scenePos()); break;
     case Eraser: updateEraserStroke(event->scenePos()); break;
@@ -45,8 +84,15 @@ void DrawingScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
     QGraphicsScene::mouseMoveEvent(event);
 }
 
-// Handle mouse release event
 void DrawingScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
+    // Handle transform operations
+    if (m_transform.isTransforming) {
+        endTransform();
+        event->accept();
+        return;
+    }
+
+    // Normal tool behavior
     switch (m_currentTool) {
     case Brush: finalizeBrushStroke(); break;
     case Eraser: finalizeEraserStroke(); break;
@@ -363,8 +409,17 @@ void DrawingScene::finalizeEraserStroke() {
 }
 // Process the eraser on a single stroke
 void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::Path64& eraserPath) {
+    // If the stroke is being transformed, apply transform to its path first
+    QPainterPath strokeScenePath = stroke->path();
+
+    // Apply any transform to get scene coordinates
+    if (!stroke->transform().isIdentity() || stroke->pos() != QPointF(0, 0)) {
+        QTransform sceneTransform = stroke->sceneTransform();
+        strokeScenePath = sceneTransform.map(strokeScenePath);
+    }
+
     // Convert the stroke path to Clipper format
-    Clipper2Lib::Path64 strokePath = DrawingEngineUtils::convertPathToClipper(stroke->path());
+    Clipper2Lib::Path64 strokePath = DrawingEngineUtils::convertPathToClipper(strokeScenePath);
 
     // Create paths collections
     Clipper2Lib::Paths64 subj, clip, solution;
@@ -630,14 +685,14 @@ void DrawingScene::applyFill(const QPointF& pos) {
 void DrawingScene::startSelection(const QPointF& pos) {
     // If clicking on a selected item, start moving
     QList<QGraphicsItem*> itemsAtPos = items(pos);
-    
+
     bool clickedOnAnyItem = false;
     bool clickedOnSelected = false;
-    
+
     for (QGraphicsItem* item : itemsAtPos) {
         if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
             clickedOnAnyItem = true;
-            
+
             if (m_selectedItems.contains(stroke)) {
                 clickedOnSelected = true;
                 m_isMovingSelection = true;
@@ -663,25 +718,25 @@ void DrawingScene::startSelection(const QPointF& pos) {
             }
         }
     }
-    
+
     // If not clicking on any item, start new selection rectangle (or clear selection)
     if (!clickedOnAnyItem) {
         // Clear previous selection if not using Shift
         if (!(QApplication::keyboardModifiers() & Qt::ShiftModifier)) {
             clearSelection();
         }
-        
+
         // Start new selection rectangle
         m_isSelecting = true;
         m_selectionStartPos = pos;
-        
+
         if (!m_selectionRect) {
             m_selectionRect = new QGraphicsRectItem();
             m_selectionRect->setPen(QPen(Qt::DashLine));
             m_selectionRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
             addItem(m_selectionRect);
         }
-        
+
         m_selectionRect->setRect(QRectF(pos, QSizeF(0, 0)));
         m_selectionRect->show();
     }
@@ -725,37 +780,51 @@ void DrawingScene::finalizeSelection() {
 
         // Highlight selected items
         highlightSelectedItems(true);
+
+        // Create transform handles
+        if (!m_selectedItems.isEmpty()) {
+            createSelectionBox();
+        }
     }
     else if (m_isMovingSelection) {
         m_isMovingSelection = false;
+
+        // Update transform handles
+        if (!m_selectedItems.isEmpty()) {
+            createSelectionBox();
+        }
     }
 }
 
-void DrawingScene::moveSelectedItems(const QPointF& newPos) {
+void DrawingScene::moveSelectedItems(const QPointF& delta) {
     if (m_selectedItems.isEmpty()) return;
 
-    QPointF delta = newPos - m_lastMousePos;
-    for (StrokeItem* item : m_selectedItems) {
+    for (auto item : m_selectedItems) {
         item->moveBy(delta.x(), delta.y());
     }
-    m_lastMousePos = newPos;
+
+    // Update selection box
+    if (m_transform.box) {
+        removeSelectionBox();
+        createSelectionBox();
+    }
 }
 
 void DrawingScene::clearSelection() {
     highlightSelectedItems(false);
     m_selectedItems.clear();
+    removeSelectionBox();
 }
 
 void DrawingScene::highlightSelectedItems(bool highlight) {
     for (StrokeItem* item : m_selectedItems) {
         if (highlight) {
-            // Store original pen and use a highlighted pen
             item->setSelected(true);
-            item->setZValue(item->zValue() + 0.1); // Bring slightly forward
+            item->setZValue(item->zValue() + 0.1);
         }
         else {
             item->setSelected(false);
-            item->setZValue(item->zValue() - 0.1); // Restore z-order
+            item->setZValue(item->zValue() - 0.1);
         }
     }
 }
@@ -856,7 +925,7 @@ void DrawingScene::keyReleaseEvent(QKeyEvent* event) {
             !m_keysPressed.value(Qt::Key_Right) &&
             !m_keysPressed.value(Qt::Key_Up) &&
             !m_keysPressed.value(Qt::Key_Down)) {
-            
+
             // Use a small delay before actually invalidating the timer
             // This allows for quick direction changes without resetting acceleration
             QTimer::singleShot(50, this, [this]() {
@@ -868,7 +937,7 @@ void DrawingScene::keyReleaseEvent(QKeyEvent* event) {
                     m_keyPressTimer.invalidate();
                     m_moveSpeed = 1;
                 }
-            });
+                });
         }
     }
 
@@ -876,9 +945,381 @@ void DrawingScene::keyReleaseEvent(QKeyEvent* event) {
 }
 
 DrawingScene::~DrawingScene() {
-    // Clean up selection rectangle if it exists
+    // Clean up selection rectangle
     if (m_selectionRect) {
         delete m_selectionRect;
         m_selectionRect = nullptr;
     }
+
+    // Clean up transform handles
+    removeSelectionBox();
+}
+
+
+// Create selection box with transform handles
+void DrawingScene::createSelectionBox() {
+    // Remove any existing selection box
+    removeSelectionBox();
+
+    if (m_selectedItems.isEmpty()) {
+        return;
+    }
+
+    // Calculate bounds of all selected items
+    QRectF bounds;
+    for (auto item : m_selectedItems) {
+        QPainterPath path = item->path();
+        QTransform t = item->transform();
+        QPainterPath mappedPath = t.map(path);
+        mappedPath.translate(item->pos());
+
+        if (bounds.isNull()) {
+            bounds = mappedPath.boundingRect();
+        }
+        else {
+            bounds = bounds.united(mappedPath.boundingRect());
+        }
+    }
+
+    if (bounds.isNull()) {
+        return;
+    }
+
+    m_transform.initialBounds = bounds;
+    m_transform.center = bounds.center();
+
+    // Create selection box
+    m_transform.box = new QGraphicsRectItem(bounds);
+    m_transform.box->setPen(QPen(Qt::blue, 1, Qt::DashLine));
+    m_transform.box->setZValue(999);
+    addItem(m_transform.box);
+
+    // Create handles
+    qreal handleSize = 8;
+    QPen handlePen(Qt::blue);
+    QBrush handleBrush(Qt::white);
+
+    // Function to create a handle
+    auto createRectHandle = [&](const QPointF& pos) -> QGraphicsRectItem* {
+        QGraphicsRectItem* handle = new QGraphicsRectItem(
+            QRectF(pos.x() - handleSize / 2, pos.y() - handleSize / 2, handleSize, handleSize));
+        handle->setPen(handlePen);
+        handle->setBrush(handleBrush);
+        handle->setZValue(1000);
+        addItem(handle);
+        m_transform.handles.append(handle);
+        return handle;
+        };
+
+    // Corner handles
+    createRectHandle(bounds.topLeft());     // HandleTopLeft
+    createRectHandle(bounds.topRight());    // HandleTopRight
+    createRectHandle(bounds.bottomRight()); // HandleBottomRight
+    createRectHandle(bounds.bottomLeft());  // HandleBottomLeft
+
+    // Edge handles
+    createRectHandle(QPointF(bounds.center().x(), bounds.top()));    // HandleTop
+    createRectHandle(QPointF(bounds.right(), bounds.center().y()));  // HandleRight
+    createRectHandle(QPointF(bounds.center().x(), bounds.bottom())); // HandleBottom
+    createRectHandle(QPointF(bounds.left(), bounds.center().y()));   // HandleLeft
+
+    // Rotation handle
+    QPointF rotHandlePos(bounds.center().x(), bounds.center().y() - 30); // Corrected position
+    m_transform.rotationHandle = new QGraphicsEllipseItem(
+        QRectF(rotHandlePos.x() - handleSize / 2, rotHandlePos.y() - handleSize / 2, handleSize, handleSize));
+    m_transform.rotationHandle->setPen(handlePen);
+    m_transform.rotationHandle->setBrush(Qt::green);
+    m_transform.rotationHandle->setZValue(1000);
+    addItem(m_transform.rotationHandle);
+    m_transform.handles.append(m_transform.rotationHandle);
+
+    // Line from center to rotation handle
+    m_transform.rotationLine = new QGraphicsLineItem(
+        QLineF(bounds.center(), rotHandlePos));
+    m_transform.rotationLine->setPen(QPen(Qt::blue, 1, Qt::DashLine));
+    m_transform.rotationLine->setZValue(999);
+    addItem(m_transform.rotationLine);
+    m_transform.handles.append(m_transform.rotationLine);
+
+    // Center point
+    m_transform.centerPoint = new QGraphicsEllipseItem(
+        QRectF(bounds.center().x() - 3, bounds.center().y() - 3, 6, 6));
+    m_transform.centerPoint->setPen(QPen(Qt::red));
+    m_transform.centerPoint->setBrush(Qt::red);
+    m_transform.centerPoint->setZValue(1001);
+    addItem(m_transform.centerPoint);
+    m_transform.handles.append(m_transform.centerPoint);
+}
+
+// Remove selection box and handles
+void DrawingScene::removeSelectionBox() {
+    if (m_transform.box) {
+        removeItem(m_transform.box);
+        delete m_transform.box;
+        m_transform.box = nullptr;
+    }
+
+    for (auto handle : m_transform.handles) {
+        removeItem(handle);
+        delete handle;
+    }
+    m_transform.handles.clear();
+    m_transform.rotationHandle = nullptr;
+    m_transform.rotationLine = nullptr;
+    m_transform.centerPoint = nullptr;
+}
+
+// Test if a point hits a transform handle and return the handle type
+TransformHandleType DrawingScene::hitTestTransformHandle(const QPointF& pos) {
+    if (!m_transform.box) {
+        return HandleNone;
+    }
+
+    // Check rotation handle first
+    if (m_transform.rotationHandle && m_transform.rotationHandle->contains(
+        m_transform.rotationHandle->mapFromScene(pos))) {
+        return HandleRotation;
+    }
+
+    // Check other handles
+    for (int i = 0; i < 8 && i < m_transform.handles.size(); i++) {
+        QGraphicsItem* handle = m_transform.handles[i];
+        if (handle && handle->contains(handle->mapFromScene(pos))) {
+            return static_cast<TransformHandleType>(i);
+        }
+    }
+
+    return HandleNone;
+}
+
+// Start a transform operation
+void DrawingScene::startTransform(const QPointF& pos, TransformHandleType handleType) {
+    m_transform.activeHandle = handleType;
+    m_transform.startPos = pos;
+    m_transform.isTransforming = true;
+
+    // Make sure we store the current bounds as reference
+    if (m_transform.box) {
+        m_transform.initialBounds = m_transform.box->rect();
+    }
+
+    // Store original state of all selected items
+    m_transform.itemStates.clear();
+    for (auto item : m_selectedItems) {
+        m_transform.itemStates[item] = {
+            item->pos(),
+            item->transform(),
+            item->path()
+        };
+    }
+
+    // For rotation, store starting angle
+    if (handleType == HandleRotation) {
+        QLineF line(m_transform.center, pos);
+        m_transform.startAngle = line.angle();
+    }
+}
+
+// Update transform during drag
+void DrawingScene::updateTransform(const QPointF& pos) {
+    if (!m_transform.isTransforming) return;
+
+    QPointF delta = pos - m_transform.startPos;
+
+    // Handle rotation
+    if (m_transform.activeHandle == HandleRotation) {
+        QLineF line(m_transform.center, pos);
+        qreal currentAngle = line.angle();
+        qreal angleDelta = currentAngle - m_transform.startAngle;
+
+        // Apply rotation
+        rotateSelection(angleDelta);
+
+        // Update rotation line position (handle stays in place)
+        if (m_transform.rotationLine) {
+            m_transform.rotationLine->setLine(QLineF(m_transform.center, pos));
+        }
+
+        // Store new start angle
+        m_transform.startAngle = currentAngle;
+        return;
+    }
+
+    // Handle scaling
+    QPointF fixedPoint;
+    qreal sx = 1.0, sy = 1.0;
+
+    // Determine fixed point and scale factors based on handle type
+    QRectF bounds = m_transform.initialBounds;
+
+    switch (m_transform.activeHandle) {
+    case HandleTopLeft:
+        fixedPoint = bounds.bottomRight();
+        if (pos.x() < fixedPoint.x()) sx = (fixedPoint.x() - pos.x()) / bounds.width();
+        if (pos.y() < fixedPoint.y()) sy = (fixedPoint.y() - pos.y()) / bounds.height();
+        break;
+
+    case HandleTopRight:
+        fixedPoint = bounds.bottomLeft();
+        if (pos.x() > fixedPoint.x()) sx = (pos.x() - fixedPoint.x()) / bounds.width();
+        if (pos.y() < fixedPoint.y()) sy = (fixedPoint.y() - pos.y()) / bounds.height();
+        break;
+
+    case HandleBottomRight:
+        fixedPoint = bounds.topLeft();
+        if (pos.x() > fixedPoint.x()) sx = (pos.x() - fixedPoint.x()) / bounds.width();
+        if (pos.y() > fixedPoint.y()) sy = (pos.y() - fixedPoint.y()) / bounds.height();
+        break;
+
+    case HandleBottomLeft:
+        fixedPoint = bounds.topRight();
+        if (pos.x() < fixedPoint.x()) sx = (fixedPoint.x() - pos.x()) / bounds.width();
+        if (pos.y() > fixedPoint.y()) sy = (pos.y() - fixedPoint.y()) / bounds.height();
+        break;
+
+    case HandleTop:
+        fixedPoint = QPointF(bounds.center().x(), bounds.bottom());
+        if (pos.y() < fixedPoint.y()) sy = (fixedPoint.y() - pos.y()) / bounds.height();
+        sx = 1.0;
+        break;
+
+    case HandleBottom:
+        fixedPoint = QPointF(bounds.center().x(), bounds.top());
+        if (pos.y() > fixedPoint.y()) sy = (pos.y() - fixedPoint.y()) / bounds.height();
+        sx = 1.0;
+        break;
+
+    case HandleLeft:
+        fixedPoint = QPointF(bounds.right(), bounds.center().y());
+        if (pos.x() < fixedPoint.x()) sx = (fixedPoint.x() - pos.x()) / bounds.width();
+        sy = 1.0;
+        break;
+
+    case HandleRight:
+        fixedPoint = QPointF(bounds.left(), bounds.center().y());
+        if (pos.x() > fixedPoint.x()) sx = (pos.x() - fixedPoint.x()) / bounds.width();
+        sy = 1.0;
+        break;
+
+    default:
+        return;
+    }
+
+    // Apply scaling
+    scaleSelection(sx, sy, fixedPoint);
+
+    // Update selection box and handles
+    createSelectionBox();
+}
+
+// End transform operation
+void DrawingScene::endTransform() {
+    if (!m_transform.isTransforming) return;
+
+    // Apply final transforms to path data
+    applyTransformToItems();
+
+    // Reset transform state
+    m_transform.isTransforming = false;
+    m_transform.activeHandle = HandleNone;
+    m_transform.itemStates.clear();
+
+    // Update selection box with new bounds
+    createSelectionBox();
+}
+
+// Rotate selected items
+void DrawingScene::rotateSelection(qreal angle) {
+    if (qFuzzyIsNull(angle)) return;
+
+    for (auto item : m_selectedItems) {
+        if (!m_transform.itemStates.contains(item)) continue;
+
+        const auto& state = m_transform.itemStates[item];
+        QPointF origPos = state.pos;
+
+        // Calculate offset from selection center to item's original position
+        QPointF offset = origPos - m_transform.center;
+
+        // Rotate the offset by the angle
+        QTransform rotationTransform;
+        rotationTransform.rotate(angle);
+        QPointF rotatedOffset = rotationTransform.map(offset);
+
+        // Calculate new position around the center
+        QPointF newPos = m_transform.center + rotatedOffset;
+
+        // Apply new position
+        item->setPos(newPos);
+
+        // Apply rotation to the item's transform (if visual rotation is desired)
+        QTransform itemTransform = state.transform;
+        itemTransform.rotate(angle);
+        item->setTransform(itemTransform);
+
+        // Update stored state
+        m_transform.itemStates[item].pos = newPos;
+        m_transform.itemStates[item].transform = itemTransform;
+    }
+}
+
+// Scale selected items
+void DrawingScene::scaleSelection(qreal sx, qreal sy, const QPointF& fixedPoint) {
+    sx = qBound(0.05, sx, 20.0);
+    sy = qBound(0.05, sy, 20.0);
+
+    for (auto item : m_selectedItems) {
+        if (!m_transform.itemStates.contains(item)) continue;
+
+        const auto& state = m_transform.itemStates[item];
+
+        // 1. Get original state components
+        const QPointF origPos = state.pos;
+        const QTransform origTransform = state.transform;
+
+        // 2. Calculate fixed point in item's LOCAL coordinates
+        const QPointF sceneOffset = fixedPoint - origPos;
+        const QPointF localPivot = origTransform.inverted().map(sceneOffset);
+
+        // 3. Create scaling transform relative to local pivot
+        QTransform scaling;
+        scaling.translate(localPivot.x(), localPivot.y());
+        scaling.scale(sx, sy);
+        scaling.translate(-localPivot.x(), -localPivot.y());
+
+        // 4. Apply scaling to original transform
+        QTransform newTransform = origTransform * scaling;
+
+        // 5. Calculate new position to keep fixed point stable
+        const QPointF newScenePivot = newTransform.map(localPivot) + origPos;
+        const QPointF posCorrection = fixedPoint - newScenePivot;
+        const QPointF newPos = origPos + posCorrection;
+
+        // 6. Update item properties
+        item->setPos(newPos);
+        item->setTransform(newTransform);
+
+        // 7. Update stored state
+        m_transform.itemStates[item].pos = newPos;
+        m_transform.itemStates[item].transform = newTransform;
+    }
+}
+
+// Apply all transforms to the actual path data
+void DrawingScene::applyTransformToItems() {
+    for (auto item : m_selectedItems) {
+        if (!m_transform.itemStates.contains(item)) continue;
+
+        // Get current transformation state
+        const QPointF currentPos = item->pos();
+        const QTransform currentTransform = item->transform();
+        // Apply to original path
+        QPainterPath newPath = currentTransform.map(m_transform.itemStates[item].originalPath);
+        newPath.translate(currentPos);
+
+		item->setPath(newPath);
+        item->setPos(0, 0);
+		item->setTransform(QTransform());
+    }
+    createSelectionBox();
 }
