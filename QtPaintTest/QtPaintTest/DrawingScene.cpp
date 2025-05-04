@@ -7,6 +7,9 @@ DrawingScene::DrawingScene(QObject* parent)
 
     m_cooldownTimer.setInterval(m_cooldownInterval);
     connect(&m_cooldownTimer, &QTimer::timeout, this, &DrawingScene::commitBrushSegment);
+
+    // Initialize key tracking
+    m_moveSpeed = 1;
 }
 
 // Set the current tool
@@ -627,37 +630,58 @@ void DrawingScene::applyFill(const QPointF& pos) {
 void DrawingScene::startSelection(const QPointF& pos) {
     // If clicking on a selected item, start moving
     QList<QGraphicsItem*> itemsAtPos = items(pos);
-
+    
+    bool clickedOnAnyItem = false;
     bool clickedOnSelected = false;
+    
     for (QGraphicsItem* item : itemsAtPos) {
         if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
+            clickedOnAnyItem = true;
+            
             if (m_selectedItems.contains(stroke)) {
                 clickedOnSelected = true;
                 m_isMovingSelection = true;
                 m_lastMousePos = pos;
                 break;
             }
+            else if (!(QApplication::keyboardModifiers() & Qt::ShiftModifier)) {
+                // If clicking on an unselected item without Shift, select only this item
+                clearSelection();
+                m_selectedItems.append(stroke);
+                highlightSelectedItems(true);
+                m_isMovingSelection = true;
+                m_lastMousePos = pos;
+                return;
+            }
+            else {
+                // If clicking with Shift, add this item to the selection
+                m_selectedItems.append(stroke);
+                highlightSelectedItems(true);
+                m_isMovingSelection = true;
+                m_lastMousePos = pos;
+                return;
+            }
         }
     }
-
-    // If not clicking on selected item, start new selection
-    if (!clickedOnSelected) {
-        // Clear previous selection
+    
+    // If not clicking on any item, start new selection rectangle (or clear selection)
+    if (!clickedOnAnyItem) {
+        // Clear previous selection if not using Shift
         if (!(QApplication::keyboardModifiers() & Qt::ShiftModifier)) {
             clearSelection();
         }
-
+        
         // Start new selection rectangle
         m_isSelecting = true;
         m_selectionStartPos = pos;
-
+        
         if (!m_selectionRect) {
             m_selectionRect = new QGraphicsRectItem();
             m_selectionRect->setPen(QPen(Qt::DashLine));
             m_selectionRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
             addItem(m_selectionRect);
         }
-
+        
         m_selectionRect->setRect(QRectF(pos, QSizeF(0, 0)));
         m_selectionRect->show();
     }
@@ -736,50 +760,119 @@ void DrawingScene::highlightSelectedItems(bool highlight) {
     }
 }
 
-// Add this to your DrawingScene class
+
 void DrawingScene::keyPressEvent(QKeyEvent* event) {
     if (m_currentTool == Select && !m_selectedItems.isEmpty()) {
-        switch (event->key()) {
-        case Qt::Key_Delete:
-            // Delete selected items
+        int key = event->key();
+
+        // Check if this is a new key press
+        bool isNewKeyPress = !m_keysPressed.contains(key) || !m_keysPressed[key];
+
+        // Store the key press state
+        if (isNewKeyPress) {
+            m_keysPressed[key] = true;
+        }
+
+        // Start or restart timer for arrow keys with any arrow press
+        bool anyArrowPressed = m_keysPressed.value(Qt::Key_Left) ||
+            m_keysPressed.value(Qt::Key_Right) ||
+            m_keysPressed.value(Qt::Key_Up) ||
+            m_keysPressed.value(Qt::Key_Down);
+
+        if (anyArrowPressed) {
+            // Ensure timer is running whenever arrows are pressed
+            if (!m_keyPressTimer.isValid()) {
+                m_keyPressTimer.start();
+                m_moveSpeed = 1;
+            }
+
+            // Calculate acceleration based on time since first arrow press
+            if (m_keyPressTimer.elapsed() > 300) {
+                // More responsive acceleration curve
+                int elapsedMs = m_keyPressTimer.elapsed();
+                if (elapsedMs > 2000) {
+                    m_moveSpeed = 10; // Maximum speed
+                }
+                else if (elapsedMs > 1500) {
+                    m_moveSpeed = 7;
+                }
+                else if (elapsedMs > 1000) {
+                    m_moveSpeed = 5;
+                }
+                else if (elapsedMs > 600) {
+                    m_moveSpeed = 3;
+                }
+                else {
+                    m_moveSpeed = 2;
+                }
+            }
+        }
+
+        int dx = 0;
+        int dy = 0;
+
+        // Calculate movement based on which keys are pressed
+        if (m_keysPressed.value(Qt::Key_Left)) dx -= m_moveSpeed;
+        if (m_keysPressed.value(Qt::Key_Right)) dx += m_moveSpeed;
+        if (m_keysPressed.value(Qt::Key_Up)) dy -= m_moveSpeed;
+        if (m_keysPressed.value(Qt::Key_Down)) dy += m_moveSpeed;
+
+        if (dx != 0 || dy != 0) {
+            // Apply the movement
+            for (StrokeItem* item : m_selectedItems) {
+                item->moveBy(dx, dy);
+            }
+
+            // Prevent event from propagating to parent (stops canvas movement)
+            event->accept();
+            return;
+        }
+
+        // Handle delete key for selected items
+        if (key == Qt::Key_Delete) {
             for (StrokeItem* item : m_selectedItems) {
                 removeItem(item);
                 delete item;
             }
             m_selectedItems.clear();
-            break;
-
-        case Qt::Key_Left:
-            // Move selection left
-            for (StrokeItem* item : m_selectedItems) {
-                item->moveBy(-1, 0);
-            }
-            break;
-
-        case Qt::Key_Right:
-            // Move selection right
-            for (StrokeItem* item : m_selectedItems) {
-                item->moveBy(1, 0);
-            }
-            break;
-
-        case Qt::Key_Up:
-            // Move selection up
-            for (StrokeItem* item : m_selectedItems) {
-                item->moveBy(0, -1);
-            }
-            break;
-
-        case Qt::Key_Down:
-            // Move selection down
-            for (StrokeItem* item : m_selectedItems) {
-                item->moveBy(0, 1);
-            }
-            break;
+            event->accept();
+            return;
         }
     }
 
     QGraphicsScene::keyPressEvent(event);
+}
+
+void DrawingScene::keyReleaseEvent(QKeyEvent* event) {
+    int key = event->key();
+
+    // Mark key as released
+    if (m_keysPressed.contains(key)) {
+        m_keysPressed[key] = false;
+
+        // Only reset the timer if all arrow keys are released
+        // AND there's no new arrow key pressed within a short timeframe
+        if (!m_keysPressed.value(Qt::Key_Left) &&
+            !m_keysPressed.value(Qt::Key_Right) &&
+            !m_keysPressed.value(Qt::Key_Up) &&
+            !m_keysPressed.value(Qt::Key_Down)) {
+            
+            // Use a small delay before actually invalidating the timer
+            // This allows for quick direction changes without resetting acceleration
+            QTimer::singleShot(50, this, [this]() {
+                // Check again after delay to make sure no new arrow key was pressed
+                if (!m_keysPressed.value(Qt::Key_Left) &&
+                    !m_keysPressed.value(Qt::Key_Right) &&
+                    !m_keysPressed.value(Qt::Key_Up) &&
+                    !m_keysPressed.value(Qt::Key_Down)) {
+                    m_keyPressTimer.invalidate();
+                    m_moveSpeed = 1;
+                }
+            });
+        }
+    }
+
+    QGraphicsScene::keyReleaseEvent(event);
 }
 
 DrawingScene::~DrawingScene() {

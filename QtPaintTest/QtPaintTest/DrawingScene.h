@@ -23,6 +23,7 @@ protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
 
 private slots:
     void commitBrushSegment();
@@ -78,6 +79,9 @@ private:
     bool m_isSelecting = false;
     bool m_isMovingSelection = false;
     QPointF m_lastMousePos;
+    QMap<int, bool> m_keysPressed;
+    QElapsedTimer m_keyPressTimer;
+    int m_moveSpeed = 1;
 
     // Selection Implementation
     void startSelection(const QPointF& pos);
