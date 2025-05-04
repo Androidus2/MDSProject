@@ -112,6 +112,7 @@
     <ClCompile Include="DrawingScene.cpp" />
     <ClCompile Include="FileIOOperations.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="ManipulatableGraphicsView.cpp" />
     <ClCompile Include="StrokeItem.cpp" />
     <ClCompile Include="Utils\ClipFileLoad.cpp" />
     <ClCompile Include="Utils\ClipFileSave.cpp" />
@@ -140,6 +141,7 @@
     <QtMoc Include="DrawingScene.h" />
     <ClInclude Include="FileIOOperations.h" />
     <ClInclude Include="MainWindow.h" />
+    <QtMoc Include="ManipulatableGraphicsView.h" />
     <ClInclude Include="StrokeItem.h" />
     <ClInclude Include="Utils\ClipFileLoad.h" />
     <ClInclude Include="Utils\ClipFileSave.h" />

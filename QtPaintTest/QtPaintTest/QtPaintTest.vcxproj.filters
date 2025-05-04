@@ -85,6 +85,9 @@
     <ClCompile Include="DrawingEngineUtils.cpp">
       <Filter>Source Files\DrawingEngine</Filter>
     </ClCompile>
+    <ClCompile Include="ManipulatableGraphicsView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\ClipFileLoad.h">
@@ -124,6 +127,9 @@
   <ItemGroup>
     <QtMoc Include="DrawingScene.h">
       <Filter>Header Files\DrawingEngine</Filter>
+    </QtMoc>
+    <QtMoc Include="ManipulatableGraphicsView.h">
+      <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

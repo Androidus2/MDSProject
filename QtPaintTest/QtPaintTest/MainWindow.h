@@ -2,6 +2,7 @@
 #include <QtWidgets>
 #include <QUndoStack>
 #include "DrawingScene.h"
+#include "ManipulatableGraphicsView.h" // Include the new header
 
 class MainWindow : public QMainWindow {
 public:
@@ -18,7 +19,7 @@ private:
     void setBrushSize(int size);
 
     DrawingScene m_scene;
-    QGraphicsView* m_view;
+    ManipulatableGraphicsView* m_view; // Change type from QGraphicsView*
     QToolButton* m_colorButton;
     QUndoStack* m_undoStack;
     QAction *m_undoAction;

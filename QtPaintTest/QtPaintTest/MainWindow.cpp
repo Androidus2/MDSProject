@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "FileIOOperations.h"
+#include "ManipulatableGraphicsView.h" // Include the new header
 #include <QUndoStack>
 
 MainWindow::MainWindow() {
@@ -16,7 +17,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::setupUI() {
-    m_view = new QGraphicsView(&m_scene);
+    m_view = new ManipulatableGraphicsView(&m_scene); // Use the new view class
     setCentralWidget(m_view);
 
     QToolBar* toolbar = new QToolBar;
@@ -131,7 +132,7 @@ void MainWindow::setupMenus() {
     m_redoAction->setEnabled(m_undoStack->canRedo());
 }
 void MainWindow::setupTools() {
-    m_scene.setSceneRect(-500, -500, 1000, 1000);
+    m_scene.setSceneRect(-10000, -10000, 20000, 20000); 
     m_scene.setBackgroundBrush(Qt::white);
 }
 
