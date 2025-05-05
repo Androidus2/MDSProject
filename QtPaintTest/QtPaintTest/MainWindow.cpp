@@ -1,4 +1,4 @@
-#include "MainWindow.h"
+﻿#include "MainWindow.h"
 #include "FileIOOperations.h"
 
 MainWindow::MainWindow() : m_currentFrame(0) {
@@ -76,6 +76,94 @@ void MainWindow::setupUI() {
     connect(sizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
         this, &MainWindow::setBrushSize);
     toolbar->addWidget(sizeSpinBox);
+
+    ///Styling using CSS
+    toolbar->setStyleSheet(R"( 
+ /* Toolbar frumos și centrat */
+QToolBar {
+    background-color: #2c2c2c;
+    border: 1px solid #444;
+    padding: 6px;
+    border-radius: 8px;
+    spacing: 8px;
+    qproperty-alignment: AlignCenter; /* Toate pe mijloc */
+}
+
+/* Butoane frumoase */
+QToolButton {
+    background-color: #3c3f41;
+    color: #f8f8f8;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-weight: bold;
+    margin: 4px;
+    min-width: 80px; /* Face toate butoanele la fel si centrabile */
+}
+
+/* La hover si click */
+QToolButton:hover {
+    background-color: #505357;
+    border: 1px solid #777;
+}
+
+QToolButton:pressed {
+    background-color: #292b2c;
+    border: 1px solid #555;
+}
+
+/* Etichete */
+QLabel {
+    color: #f0f0f0;
+    font-size: 14px;
+    qproperty-alignment: AlignCenter; /* Centrare text */
+}
+
+QSpinBox {
+    background-color: #232629;
+    color: #f8f8f8;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+    qproperty-alignment: AlignCenter; /* Centrare text */
+    qproperty-iconSize: 24px;
+}
+
+
+
+
+/* Selector de culoare (QPushButton, de ex) */
+QPushButton {
+    background-color: #3c3f41;
+    color: #f8f8f8;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-weight: bold;
+    min-width: 80px;
+    qproperty-iconSize: 24px;
+    qproperty-alignment: AlignCenter; /* Pe mijloc */
+}
+
+QPushButton:hover {
+    background-color: #505357;
+    border: 1px solid #777;
+}
+
+QPushButton:pressed {
+    background-color: #292b2c;
+    border: 1px solid #555;
+}
+/* Selector de culoare (QPushButton, de ex) */
+QPushButton:checked {
+    background-color: #505357;
+    border: 1px solid #777;
+    color: #f8f8f8;
+    font-weight: bold;
+    qproperty-iconSize: 24px;
+    qproperty-alignment: AlignCenter; /* Pe mijloc */
+})");
 
     statusBar();
 }
