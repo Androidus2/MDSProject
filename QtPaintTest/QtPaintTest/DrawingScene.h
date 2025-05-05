@@ -31,6 +31,7 @@ public:
 
     // Brush width setter
     void setBrushWidth(qreal width);
+	qreal brushWidth() const;
 
     // Reset all selection-related state (for file operations)
     void resetSelectionState();

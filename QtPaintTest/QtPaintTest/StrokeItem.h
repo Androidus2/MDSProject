@@ -15,6 +15,8 @@ public:
 	void setSelected(bool selected);
 	bool isSelected() const { return m_isSelected; }
 
+	StrokeItem* clone() const;
+
 protected:
 	void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
 
