@@ -85,6 +85,9 @@
     <ClCompile Include="DrawingEngineUtils.cpp">
       <Filter>Source Files\DrawingEngine</Filter>
     </ClCompile>
+    <ClCompile Include="TimelineWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\ClipFileLoad.h">
@@ -114,9 +117,6 @@
     <ClInclude Include="DrawingEngineUtils.h">
       <Filter>Header Files\DrawingEngine</Filter>
     </ClInclude>
-    <ClInclude Include="MainWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="FileIOOperations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -124,6 +124,15 @@
   <ItemGroup>
     <QtMoc Include="DrawingScene.h">
       <Filter>Header Files\DrawingEngine</Filter>
+    </QtMoc>
+    <QtMoc Include="MainWindow.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="TimelineWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="FrameItem.h">
+      <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

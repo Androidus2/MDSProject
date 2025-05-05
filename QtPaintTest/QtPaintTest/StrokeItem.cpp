@@ -86,6 +86,26 @@ QColor StrokeItem::color() const { return m_color; }
 qreal StrokeItem::width() const { return m_width; }
 bool StrokeItem::isOutlined() const { return m_isOutlined; }
 
+StrokeItem* StrokeItem::clone() const {
+	StrokeItem* clone = new StrokeItem(m_color, m_width);
+	clone->setPath(path());
+	clone->setPen(pen());
+	clone->setBrush(brush());
+	clone->setOutlined(m_isOutlined);
+
+	// Copy selection state
+	clone->m_isSelected = m_isSelected;
+	clone->m_originalPen = m_originalPen;
+
+	// Copy transform
+	clone->setTransform(transform());
+	clone->setPos(pos());
+	clone->setRotation(rotation());
+	clone->setScale(scale());
+
+	return clone;
+}
+
 void StrokeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) {
     // Draw the regular path first
     QGraphicsPathItem::paint(painter, option, widget);

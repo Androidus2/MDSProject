@@ -41,6 +41,7 @@ QColor DrawingScene::currentColor() const { return m_brushColor; }
 
 // Add brush width setter
 void DrawingScene::setBrushWidth(qreal width) { m_brushWidth = width; }
+qreal DrawingScene::brushWidth() const { return m_brushWidth; }
 
 // Handle mouse press event
 void DrawingScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {

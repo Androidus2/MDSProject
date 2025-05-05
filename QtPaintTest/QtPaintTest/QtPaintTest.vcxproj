@@ -113,6 +113,7 @@
     <ClCompile Include="FileIOOperations.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="StrokeItem.cpp" />
+    <ClCompile Include="TimelineWidget.cpp" />
     <ClCompile Include="Utils\ClipFileLoad.cpp" />
     <ClCompile Include="Utils\ClipFileSave.cpp" />
     <ClCompile Include="Utils\clipper.svg.cpp" />
@@ -139,8 +140,10 @@
     <ClInclude Include="DrawingEngineUtils.h" />
     <QtMoc Include="DrawingScene.h" />
     <ClInclude Include="FileIOOperations.h" />
-    <ClInclude Include="MainWindow.h" />
+    <QtMoc Include="MainWindow.h" />
+    <QtMoc Include="FrameItem.h" />
     <ClInclude Include="StrokeItem.h" />
+    <QtMoc Include="TimelineWidget.h" />
     <ClInclude Include="Utils\ClipFileLoad.h" />
     <ClInclude Include="Utils\ClipFileSave.h" />
     <ClInclude Include="Utils\clipper.svg.h" />
