@@ -36,6 +36,10 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
+<<<<<<< Updated upstream
+=======
+    <QtInstall>6.10.0_msvc2022_64</QtInstall>
+>>>>>>> Stashed changes
     <QtModules>core;gui;widgets;opengl;openglwidgets;svg;</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
