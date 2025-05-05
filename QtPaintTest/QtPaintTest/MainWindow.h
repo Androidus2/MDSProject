@@ -16,6 +16,8 @@ private slots:
     void onPlaybackToggled(bool playing);
     void onFrameRateChanged(int fps);
     void advanceFrame();
+    void toggleOnionSkin(bool enabled);
+    void setOnionSkinOpacity(int opacity);
 
 private:
     void setupUI();
@@ -33,4 +35,14 @@ private:
     QSpinBox* m_brushSizeSpinBox;
     TimelineWidget* m_timeline;
     QTimer* m_animationTimer;
+
+    bool m_onionSkinEnabled = false;
+    int m_onionSkinOpacity = 30; // Default 30% opacity
+    QList<QGraphicsItemGroup*> m_onionSkinItems; // To track added onion skin items
+    QAction* m_onionSkinAction;
+    QSlider* m_opacitySlider;
+    QCheckBox* m_onionSkinCheckBox;
+
+    void updateOnionSkin();
+    void addOnionSkinFrame(int frameIndex, float opacityMultiplier = 1.0f);
 };

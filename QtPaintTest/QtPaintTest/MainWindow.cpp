@@ -35,10 +35,43 @@ void MainWindow::setupUI() {
     m_view = new QGraphicsView(m_frames[m_currentFrame]);
     mainLayout->addWidget(m_view);
 
-    // Timeline
+    // Timeline section with onion skin controls
+    QWidget* timelineSection = new QWidget;
+    QVBoxLayout* timelineSectionLayout = new QVBoxLayout(timelineSection);
+    timelineSectionLayout->setSpacing(4);
+    timelineSectionLayout->setContentsMargins(0, 0, 0, 0);
+    
+    // Onion skin controls in a horizontal layout
+    QWidget* onionSkinControls = new QWidget;
+    QHBoxLayout* onionSkinLayout = new QHBoxLayout(onionSkinControls);
+    onionSkinLayout->setContentsMargins(4, 0, 4, 0);
+    
+    m_onionSkinCheckBox = new QCheckBox("Onion Skin");
+    connect(m_onionSkinCheckBox, &QCheckBox::toggled, this, &MainWindow::toggleOnionSkin);
+    
+    QLabel* opacityLabel = new QLabel("Opacity:");
+    
+    m_opacitySlider = new QSlider(Qt::Horizontal);
+    m_opacitySlider->setRange(10, 50);
+    m_opacitySlider->setValue(m_onionSkinOpacity);
+    m_opacitySlider->setFixedWidth(100);
+    connect(m_opacitySlider, &QSlider::valueChanged, this, &MainWindow::setOnionSkinOpacity);
+    
+    onionSkinLayout->addWidget(m_onionSkinCheckBox);
+    onionSkinLayout->addWidget(opacityLabel);
+    onionSkinLayout->addWidget(m_opacitySlider);
+    onionSkinLayout->addStretch();
+    
+    // Add onion skin controls above timeline
+    timelineSectionLayout->addWidget(onionSkinControls);
+    
+    // Timeline widget
     m_timeline = new TimelineWidget;
-    mainLayout->addWidget(m_timeline);
+    timelineSectionLayout->addWidget(m_timeline);
     m_timeline->setFrames(m_frames.size(), m_currentFrame);
+    
+    // Add the timeline section to main layout
+    mainLayout->addWidget(timelineSection);
 
     // Connect timeline signals
     connect(m_timeline, &TimelineWidget::frameSelected, this, &MainWindow::onFrameSelected);
@@ -258,6 +291,10 @@ void MainWindow::onFrameSelected(int frame) {
         m_brushSizeSpinBox->setValue(m_frames[frame]->brushWidth());
         m_timeline->setFrames(m_frames.size(), m_currentFrame);
     }
+
+    if (m_onionSkinEnabled) {
+        updateOnionSkin();
+    }
 }
 
 void MainWindow::onAddFrame() {
@@ -290,6 +327,10 @@ void MainWindow::onAddFrame() {
     // Update the timeline and view
     m_timeline->setFrames(m_frames.size(), m_currentFrame);
     m_view->setScene(m_frames[m_currentFrame]);
+
+    if (m_onionSkinEnabled) {
+        updateOnionSkin();
+    }
 }
 
 void MainWindow::onRemoveFrame() {
@@ -298,6 +339,10 @@ void MainWindow::onRemoveFrame() {
         m_currentFrame = qMin(m_currentFrame, m_frames.size() - 1);
         m_timeline->setFrames(m_frames.size(), m_currentFrame);
         m_view->setScene(m_frames[m_currentFrame]);
+
+        if (m_onionSkinEnabled) {
+            updateOnionSkin();
+        }
     }
 }
 
@@ -320,4 +365,68 @@ void MainWindow::advanceFrame() {
     // Move to next frame during playback
     int nextFrame = (m_currentFrame + 1) % m_frames.size();
     onFrameSelected(nextFrame);
-}   
+}
+
+void MainWindow::toggleOnionSkin(bool enabled) {
+    m_onionSkinEnabled = enabled;
+    updateOnionSkin();
+}
+
+void MainWindow::setOnionSkinOpacity(int opacity) {
+    m_onionSkinOpacity = opacity;
+    if (m_onionSkinEnabled) {
+        updateOnionSkin();
+    }
+}
+
+void MainWindow::updateOnionSkin() {
+    // Clear any existing onion skin items
+    for (QGraphicsItemGroup* group : m_onionSkinItems) {
+        m_frames[m_currentFrame]->removeItem(group);
+        delete group;
+    }
+    m_onionSkinItems.clear();
+    
+    if (!m_onionSkinEnabled) {
+        return;
+    }
+    
+    // Show up to 3 previous frames with gradually decreasing opacity
+    for (int i = 1; i <= 3; i++) {
+        int frameIndex = m_currentFrame - i;
+        if (frameIndex >= 0) {
+            // Calculate opacity multiplier: 1.0 for the most recent frame,
+            // decreasing for older frames (0.7, 0.4)
+            float opacityMultiplier = 1.0f - ((i - 1) * 0.3f);
+            addOnionSkinFrame(frameIndex, opacityMultiplier);
+        }
+    }
+    
+    // Add next frame (if available) - keep full opacity for this one
+    if (m_currentFrame < m_frames.size() - 1) {
+        addOnionSkinFrame(m_currentFrame + 1, 1.0f);
+    }
+}
+
+void MainWindow::addOnionSkinFrame(int frameIndex, float opacityMultiplier) {
+    QGraphicsItemGroup* group = new QGraphicsItemGroup();
+    m_frames[m_currentFrame]->addItem(group);
+    m_onionSkinItems.append(group);
+    
+    // Create a semi-transparent copy of each item in the source frame
+    foreach(QGraphicsItem* item, m_frames[frameIndex]->items()) {
+        if (StrokeItem* strokeItem = dynamic_cast<StrokeItem*>(item)) {
+            StrokeItem* newItem = strokeItem->clone();
+            
+            // Set opacity with multiplier for gradual fading
+            newItem->setOpacity((m_onionSkinOpacity / 100.0) * opacityMultiplier);
+            
+            // Make it non-selectable and in background
+            newItem->setFlag(QGraphicsItem::ItemIsSelectable, false);
+            newItem->setZValue(-100 - (3 - opacityMultiplier*3)); // Adjust z-value for proper layering
+            
+            // Add to group for easy management
+            group->addToGroup(newItem);
+        }
+    }
+}
