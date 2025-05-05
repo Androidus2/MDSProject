@@ -32,6 +32,9 @@ public:
     // Brush width setter
     void setBrushWidth(qreal width);
 
+    // Reset all selection-related state (for file operations)
+    void resetSelectionState();
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;

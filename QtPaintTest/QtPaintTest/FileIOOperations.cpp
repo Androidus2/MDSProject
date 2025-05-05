@@ -1,9 +1,15 @@
 #include "FileIOOperations.h"
+#include "DrawingScene.h"
 
 QString FileIOOperations::currentFilePath = "";
 
 void FileIOOperations::newDrawing(QGraphicsScene& scene, MainWindow& window) {
     if (maybeSave(scene, window)) {
+        // Reset selection state first
+        if (auto* drawingScene = dynamic_cast<DrawingScene*>(&scene)) {
+            drawingScene->resetSelectionState();
+        }
+
         scene.clear();
         currentFilePath = "";
         window.setWindowTitle("Qt Vector Drawing - Untitled");
@@ -81,6 +87,10 @@ bool FileIOOperations::saveFile(const QString& fileName, const QGraphicsScene& s
             // Store width
             itemObj["width"] = stroke->width();
 
+            // Store position
+            itemObj["posX"] = stroke->pos().x();
+            itemObj["posY"] = stroke->pos().y();
+
             // Store path data
             QJsonArray pathData;
             QPainterPath path = stroke->path();
@@ -123,6 +133,11 @@ bool FileIOOperations::loadFile(const QString& fileName, QGraphicsScene& scene, 
     if (doc.isNull()) {
         QMessageBox::warning(&window, "Load Error", "Invalid file format");
         return false;
+    }
+
+    // Reset selection state first - this prevents crashes with the selection tool
+    if (auto* drawingScene = dynamic_cast<DrawingScene*>(&scene)) {
+        drawingScene->resetSelectionState();
     }
 
     // Clear current scene
@@ -197,6 +212,11 @@ bool FileIOOperations::loadFile(const QString& fileName, QGraphicsScene& scene, 
         item->setPath(path);
         if (type == "filled") {
             item->setOutlined(true);
+        }
+
+        // Set position if available
+        if (itemObj.contains("posX") && itemObj.contains("posY")) {
+            item->setPos(itemObj["posX"].toDouble(), itemObj["posY"].toDouble());
         }
 
         scene.addItem(item);

@@ -903,6 +903,8 @@ void DrawingScene::keyPressEvent(QKeyEvent* event) {
                 removeItem(item);
                 delete item;
             }
+            // Clean up selection UI elements
+            removeSelectionBox();
             m_selectedItems.clear();
             event->accept();
             return;
@@ -953,6 +955,40 @@ DrawingScene::~DrawingScene() {
 
     // Clean up transform handles
     removeSelectionBox();
+}
+
+void DrawingScene::resetSelectionState() {
+    // Clear selection
+    clearSelection();
+
+    // End any ongoing transform
+    if (m_transform.isTransforming) {
+        endTransform();
+    }
+
+    // Remove selection box
+    removeSelectionBox();
+
+    // Reset selection rectangle
+    if (m_selectionRect) {
+        removeItem(m_selectionRect);
+        delete m_selectionRect;
+        m_selectionRect = nullptr;
+    }
+
+    // Reset flags
+    m_isSelecting = false;
+    m_isMovingSelection = false;
+
+    // Clear key tracking
+    m_keysPressed.clear();
+    m_keyPressTimer.invalidate();
+    m_moveSpeed = 1;
+
+    // Clear transform state
+    m_transform.isTransforming = false;
+    m_transform.activeHandle = HandleNone;
+    m_transform.itemStates.clear();
 }
 
 
