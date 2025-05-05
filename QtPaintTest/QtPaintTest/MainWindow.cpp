@@ -29,40 +29,32 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     QWidget* centralWidget = new QWidget;
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
-    mainLayout->setContentsMargins(10, 10, 10, 10); // Add margins
-    mainLayout->setSpacing(10); // Add spacing between elements
     setCentralWidget(centralWidget);
-
-    // Splitter to separate the drawing view and timeline section
-    QSplitter* splitter = new QSplitter(Qt::Vertical, centralWidget);
 
     // Drawing view
     m_view = new QGraphicsView(m_frames[m_currentFrame]);
-    splitter->addWidget(m_view);
+    mainLayout->addWidget(m_view);
 
     // Timeline section with onion skin controls
     QWidget* timelineSection = new QWidget;
     QVBoxLayout* timelineSectionLayout = new QVBoxLayout(timelineSection);
-    timelineSectionLayout->setSpacing(10);
-    timelineSectionLayout->setContentsMargins(10, 10, 10, 10);
+    timelineSectionLayout->setSpacing(4);
+    timelineSectionLayout->setContentsMargins(0, 0, 0, 0);
 
     // Onion skin controls in a horizontal layout
-    QGroupBox* onionSkinGroup = new QGroupBox("Onion Skin Controls");
-    QHBoxLayout* onionSkinLayout = new QHBoxLayout(onionSkinGroup);
+    QWidget* onionSkinControls = new QWidget;
+    QHBoxLayout* onionSkinLayout = new QHBoxLayout(onionSkinControls);
+    onionSkinLayout->setContentsMargins(4, 0, 4, 0);
 
-    m_onionSkinCheckBox = new QCheckBox("Enable Onion Skin");
-    QFont onionSkinFont = m_onionSkinCheckBox->font();
-    onionSkinFont.setPointSize(12); // Increase font size
-    m_onionSkinCheckBox->setFont(onionSkinFont);
+    m_onionSkinCheckBox = new QCheckBox("Onion Skin");
     connect(m_onionSkinCheckBox, &QCheckBox::toggled, this, &MainWindow::toggleOnionSkin);
 
     QLabel* opacityLabel = new QLabel("Opacity:");
-    opacityLabel->setFont(onionSkinFont);
 
     m_opacitySlider = new QSlider(Qt::Horizontal);
     m_opacitySlider->setRange(10, 50);
     m_opacitySlider->setValue(m_onionSkinOpacity);
-    m_opacitySlider->setFixedWidth(150);
+    m_opacitySlider->setFixedWidth(100);
     connect(m_opacitySlider, &QSlider::valueChanged, this, &MainWindow::setOnionSkinOpacity);
 
     onionSkinLayout->addWidget(m_onionSkinCheckBox);
@@ -70,17 +62,25 @@ void MainWindow::setupUI() {
     onionSkinLayout->addWidget(m_opacitySlider);
     onionSkinLayout->addStretch();
 
-    timelineSectionLayout->addWidget(onionSkinGroup);
+    // Add onion skin controls above timeline
+    timelineSectionLayout->addWidget(onionSkinControls);
 
     // Timeline widget
     m_timeline = new TimelineWidget;
     timelineSectionLayout->addWidget(m_timeline);
     m_timeline->setFrames(m_frames.size(), m_currentFrame);
 
-    splitter->addWidget(timelineSection);
-    mainLayout->addWidget(splitter);
+    // Add the timeline section to main layout
+    mainLayout->addWidget(timelineSection);
 
-    // Toolbar setup remains unchanged
+    // Connect timeline signals
+    connect(m_timeline, &TimelineWidget::frameSelected, this, &MainWindow::onFrameSelected);
+    connect(m_timeline, &TimelineWidget::addFrameRequested, this, &MainWindow::onAddFrame);
+    connect(m_timeline, &TimelineWidget::removeFrameRequested, this, &MainWindow::onRemoveFrame);
+    connect(m_timeline, &TimelineWidget::playbackToggled, this, &MainWindow::onPlaybackToggled);
+    connect(m_timeline, &TimelineWidget::frameRateChanged, this, &MainWindow::onFrameRateChanged);
+
+    // Rest of the UI setup remains the same...
     QToolBar* toolbar = new QToolBar;
     addToolBar(Qt::LeftToolBarArea, toolbar);
 
@@ -92,7 +92,6 @@ void MainWindow::setupUI() {
     // Add color selection button
     QToolButton* colorButton = new QToolButton;
     colorButton->setText("Color");
-    colorButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
     colorButton->setIconSize(QSize(24, 24));
     connect(colorButton, &QToolButton::clicked, this, &MainWindow::selectColor);
@@ -111,87 +110,96 @@ void MainWindow::setupUI() {
         this, &MainWindow::setBrushSize);
     toolbar->addWidget(sizeSpinBox);
 
-    // Adjust toolbar font size
-    QFont font = toolbar->font();
-    font.setPointSize(12);
-    toolbar->setFont(font);
-
-    // Apply existing CSS styles
+    ///Styling using CSS
     toolbar->setStyleSheet(R"( 
-/* ───── Toolbar elegant ───── */
+ /* Toolbar frumos și centrat */
 QToolBar {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #2e2e2e, stop:1 #262626);
+    background-color: #2c2c2c;
     border: 1px solid #444;
-    border-radius: 10px;
-    padding: 12px 16px;
-    spacing: 14px;
+    padding: 6px;
+    border-radius: 8px;
+    spacing: 8px;
+    qproperty-alignment: AlignCenter; /* Toate pe mijloc */
 }
 
-/* ───── Butoane cu iconiță și text dedesubt ───── */
+/* Butoane frumoase */
 QToolButton {
-    qproperty-toolButtonStyle: Qt::ToolButtonTextUnderIcon;
-    qproperty-iconSize: 36px;
-
-    background: #2f2f2f;
-    border: 1px solid #3c3c3c;
-    border-radius: 10px;
-    margin: 6px;
-    min-width: 80px;
-    min-height: 90px;
-
-    color: #dddddd;  /* Text vizibil implicit */
-    font-size: 14px;
+    background-color: #3c3f41;
+    color: #f8f8f8;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px 12px;
     font-weight: bold;
+    margin: 4px;
+    min-width: 80px; /* Face toate butoanele la fel si centrabile */
 }
 
-/* ───── Hover ───── */
+/* La hover si click */
 QToolButton:hover {
-    background: #3d3d3d;
-    border: 1px solid #666;
-    color: #ffffff;
+    background-color: #505357;
+    border: 1px solid #777;
 }
 
-/* ───── Apăsat momentan ───── */
 QToolButton:pressed {
-    background: #1f1f1f;
+    background-color: #292b2c;
     border: 1px solid #555;
 }
 
-/* ───── Apăsat permanent (checked) ───── */
-QToolButton:checked {
-    background: #5c8aff;     /* Albastru elegant */
-    border: 2px solid #aaccff;
-    color: #ffffff;
+/* Etichete */
+QLabel {
+    color: #f0f0f0;
+    font-size: 14px;
+    qproperty-alignment: AlignCenter; /* Centrare text */
 }
 
-/* ───── Alte controale ───── */
-QPushButton#colorSelector {
-    background: #444;
-    color: #fff;
-    border: 2px solid #777;
-    border-radius: 8px;
-    padding: 8px 16px;
-    min-width: 100px;
+QSpinBox {
+    background-color: #232629;
+    color: #f8f8f8;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+    qproperty-alignment: AlignCenter; /* Centrare text */
+    qproperty-iconSize: 24px;
+}
+
+
+
+
+/* Selector de culoare (QPushButton, de ex) */
+QPushButton {
+    background-color: #3c3f41;
+    color: #f8f8f8;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px 12px;
     font-weight: bold;
-    font-size: 13px;
+    min-width: 80px;
+    qproperty-iconSize: 24px;
+    qproperty-alignment: AlignCenter; /* Pe mijloc */
 }
 
-QPushButton#colorSelector:hover {
-    background: #666;
-    border-color: #aaa;
+QPushButton:hover {
+    background-color: #505357;
+    border: 1px solid #777;
 }
 
-QPushButton#colorSelector:pressed {
-    background: #333;
-    border-color: #999;
+QPushButton:pressed {
+    background-color: #292b2c;
+    border: 1px solid #555;
 }
-
-)");
+/* Selector de culoare (QPushButton, de ex) */
+QPushButton:checked {
+    background-color: #505357;
+    border: 1px solid #777;
+    color: #f8f8f8;
+    font-weight: bold;
+    qproperty-iconSize: 24px;
+    qproperty-alignment: AlignCenter; /* Pe mijloc */
+})");
 
     statusBar();
 }
-
 void MainWindow::setupMenus() {
     // Create File menu
     QMenu* fileMenu = menuBar()->addMenu("&File");
@@ -199,31 +207,31 @@ void MainWindow::setupMenus() {
     // New action
     QAction* newAction = fileMenu->addAction("&New");
     newAction->setShortcut(QKeySequence::New);
-	//connect(newAction, &QAction::triggered, this, &MainWindow::newDrawing);
-	connect(newAction, &QAction::triggered, this, [this]() {
-		FileIOOperations::newDrawing(*m_frames[m_currentFrame], *this);
-		});
+    //connect(newAction, &QAction::triggered, this, &MainWindow::newDrawing);
+    connect(newAction, &QAction::triggered, this, [this]() {
+        FileIOOperations::newDrawing(*m_frames[m_currentFrame], *this);
+        });
 
     // Open action
     QAction* openAction = fileMenu->addAction("&Open...");
     openAction->setShortcut(QKeySequence::Open);
-	connect(openAction, &QAction::triggered, this, [this]() {
-		FileIOOperations::loadDrawing(*m_frames[m_currentFrame], *this);
-		});
+    connect(openAction, &QAction::triggered, this, [this]() {
+        FileIOOperations::loadDrawing(*m_frames[m_currentFrame], *this);
+        });
 
     // Save action
     QAction* saveAction = fileMenu->addAction("&Save");
     saveAction->setShortcut(QKeySequence::Save);
-	connect(saveAction, &QAction::triggered, this, [this]() {
-		FileIOOperations::saveDrawing(*m_frames[m_currentFrame], *this);
-		});
+    connect(saveAction, &QAction::triggered, this, [this]() {
+        FileIOOperations::saveDrawing(*m_frames[m_currentFrame], *this);
+        });
 
     // Save As action
     QAction* saveAsAction = fileMenu->addAction("Save &As...");
     saveAsAction->setShortcut(QKeySequence::SaveAs);
-	connect(saveAsAction, &QAction::triggered, this, [this]() {
-		FileIOOperations::saveDrawingAs(*m_frames[m_currentFrame], *this);
-		});
+    connect(saveAsAction, &QAction::triggered, this, [this]() {
+        FileIOOperations::saveDrawingAs(*m_frames[m_currentFrame], *this);
+        });
 
     fileMenu->addSeparator();
 
@@ -231,19 +239,19 @@ void MainWindow::setupMenus() {
     QMenu* exportMenu = fileMenu->addMenu("&Export");
 
     QAction* exportSVG = exportMenu->addAction("Export as &SVG...");
-	connect(exportSVG, &QAction::triggered, this, [this]() {
-		FileIOOperations::exportSVG(*m_frames[m_currentFrame], *this);
-		});
+    connect(exportSVG, &QAction::triggered, this, [this]() {
+        FileIOOperations::exportSVG(*m_frames[m_currentFrame], *this);
+        });
 
     QAction* exportPNG = exportMenu->addAction("Export as &PNG...");
-	connect(exportPNG, &QAction::triggered, this, [this]() {
-		FileIOOperations::exportPNG(*m_frames[m_currentFrame], *this);
-		});
+    connect(exportPNG, &QAction::triggered, this, [this]() {
+        FileIOOperations::exportPNG(*m_frames[m_currentFrame], *this);
+        });
 
     QAction* exportJPEG = exportMenu->addAction("Export as &JPEG...");
-	connect(exportJPEG, &QAction::triggered, this, [this]() {
-		FileIOOperations::exportJPEG(*m_frames[m_currentFrame], *this);
-		});
+    connect(exportJPEG, &QAction::triggered, this, [this]() {
+        FileIOOperations::exportJPEG(*m_frames[m_currentFrame], *this);
+        });
 
     fileMenu->addSeparator();
 
@@ -253,8 +261,8 @@ void MainWindow::setupMenus() {
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
 }
 void MainWindow::setupTools() {
-    m_frames[m_currentFrame] -> setSceneRect(-500, -500, 1000, 1000);
-    m_frames[m_currentFrame] -> setBackgroundBrush(Qt::white);
+    m_frames[m_currentFrame]->setSceneRect(-500, -500, 1000, 1000);
+    m_frames[m_currentFrame]->setBackgroundBrush(Qt::white);
 }
 
 // Create a colored icon for the color button
@@ -265,14 +273,14 @@ QIcon MainWindow::createColorIcon(const QColor& color) {
 }
 
 void MainWindow::selectColor() {
-    QColor color = QColorDialog::getColor(m_frames[m_currentFrame] -> currentColor(), this, "Select Color");
+    QColor color = QColorDialog::getColor(m_frames[m_currentFrame]->currentColor(), this, "Select Color");
     if (color.isValid()) {
-        m_frames[m_currentFrame] -> setColor(color);
+        m_frames[m_currentFrame]->setColor(color);
         m_colorButton->setIcon(createColorIcon(color));
     }
 }
 void MainWindow::setBrushSize(int size) {
-    m_frames[m_currentFrame] -> setBrushWidth(size);
+    m_frames[m_currentFrame]->setBrushWidth(size);
 }
 
 void MainWindow::onFrameSelected(int frame) {
@@ -378,11 +386,11 @@ void MainWindow::updateOnionSkin() {
         delete group;
     }
     m_onionSkinItems.clear();
-    
+
     if (!m_onionSkinEnabled) {
         return;
     }
-    
+
     // Show up to 3 previous frames with gradually decreasing opacity
     for (int i = 1; i <= 3; i++) {
         int frameIndex = m_currentFrame - i;
@@ -393,7 +401,7 @@ void MainWindow::updateOnionSkin() {
             addOnionSkinFrame(frameIndex, opacityMultiplier);
         }
     }
-    
+
     // Add next frame (if available) - keep full opacity for this one
     if (m_currentFrame < m_frames.size() - 1) {
         addOnionSkinFrame(m_currentFrame + 1, 1.0f);
@@ -404,19 +412,19 @@ void MainWindow::addOnionSkinFrame(int frameIndex, float opacityMultiplier) {
     QGraphicsItemGroup* group = new QGraphicsItemGroup();
     m_frames[m_currentFrame]->addItem(group);
     m_onionSkinItems.append(group);
-    
+
     // Create a semi-transparent copy of each item in the source frame
-    foreach(QGraphicsItem* item, m_frames[frameIndex]->items()) {
+    foreach(QGraphicsItem * item, m_frames[frameIndex]->items()) {
         if (StrokeItem* strokeItem = dynamic_cast<StrokeItem*>(item)) {
             StrokeItem* newItem = strokeItem->clone();
-            
+
             // Set opacity with multiplier for gradual fading
             newItem->setOpacity((m_onionSkinOpacity / 100.0) * opacityMultiplier);
-            
+
             // Make it non-selectable and in background
             newItem->setFlag(QGraphicsItem::ItemIsSelectable, false);
-            newItem->setZValue(-100 - (3 - opacityMultiplier*3)); // Adjust z-value for proper layering
-            
+            newItem->setZValue(-100 - (3 - opacityMultiplier * 3)); // Adjust z-value for proper layering
+
             // Add to group for easy management
             group->addToGroup(newItem);
         }
