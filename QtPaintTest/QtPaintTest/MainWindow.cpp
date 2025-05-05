@@ -29,58 +29,58 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     QWidget* centralWidget = new QWidget;
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setContentsMargins(10, 10, 10, 10); // Add margins
+    mainLayout->setSpacing(10); // Add spacing between elements
     setCentralWidget(centralWidget);
+
+    // Splitter to separate the drawing view and timeline section
+    QSplitter* splitter = new QSplitter(Qt::Vertical, centralWidget);
 
     // Drawing view
     m_view = new QGraphicsView(m_frames[m_currentFrame]);
-    mainLayout->addWidget(m_view);
+    splitter->addWidget(m_view);
 
     // Timeline section with onion skin controls
     QWidget* timelineSection = new QWidget;
     QVBoxLayout* timelineSectionLayout = new QVBoxLayout(timelineSection);
-    timelineSectionLayout->setSpacing(4);
-    timelineSectionLayout->setContentsMargins(0, 0, 0, 0);
-    
+    timelineSectionLayout->setSpacing(10);
+    timelineSectionLayout->setContentsMargins(10, 10, 10, 10);
+
     // Onion skin controls in a horizontal layout
-    QWidget* onionSkinControls = new QWidget;
-    QHBoxLayout* onionSkinLayout = new QHBoxLayout(onionSkinControls);
-    onionSkinLayout->setContentsMargins(4, 0, 4, 0);
-    
-    m_onionSkinCheckBox = new QCheckBox("Onion Skin");
+    QGroupBox* onionSkinGroup = new QGroupBox("Onion Skin Controls");
+    QHBoxLayout* onionSkinLayout = new QHBoxLayout(onionSkinGroup);
+
+    m_onionSkinCheckBox = new QCheckBox("Enable Onion Skin");
+    QFont onionSkinFont = m_onionSkinCheckBox->font();
+    onionSkinFont.setPointSize(12); // Increase font size
+    m_onionSkinCheckBox->setFont(onionSkinFont);
     connect(m_onionSkinCheckBox, &QCheckBox::toggled, this, &MainWindow::toggleOnionSkin);
-    
+
     QLabel* opacityLabel = new QLabel("Opacity:");
-    
+    opacityLabel->setFont(onionSkinFont);
+
     m_opacitySlider = new QSlider(Qt::Horizontal);
     m_opacitySlider->setRange(10, 50);
     m_opacitySlider->setValue(m_onionSkinOpacity);
-    m_opacitySlider->setFixedWidth(100);
+    m_opacitySlider->setFixedWidth(150);
     connect(m_opacitySlider, &QSlider::valueChanged, this, &MainWindow::setOnionSkinOpacity);
-    
+
     onionSkinLayout->addWidget(m_onionSkinCheckBox);
     onionSkinLayout->addWidget(opacityLabel);
     onionSkinLayout->addWidget(m_opacitySlider);
     onionSkinLayout->addStretch();
-    
-    // Add onion skin controls above timeline
-    timelineSectionLayout->addWidget(onionSkinControls);
-    
+
+    timelineSectionLayout->addWidget(onionSkinGroup);
+
     // Timeline widget
     m_timeline = new TimelineWidget;
     timelineSectionLayout->addWidget(m_timeline);
     m_timeline->setFrames(m_frames.size(), m_currentFrame);
-    
-    // Add the timeline section to main layout
-    mainLayout->addWidget(timelineSection);
 
-    // Connect timeline signals
-    connect(m_timeline, &TimelineWidget::frameSelected, this, &MainWindow::onFrameSelected);
-    connect(m_timeline, &TimelineWidget::addFrameRequested, this, &MainWindow::onAddFrame);
-    connect(m_timeline, &TimelineWidget::removeFrameRequested, this, &MainWindow::onRemoveFrame);
-    connect(m_timeline, &TimelineWidget::playbackToggled, this, &MainWindow::onPlaybackToggled);
-    connect(m_timeline, &TimelineWidget::frameRateChanged, this, &MainWindow::onFrameRateChanged);
+    splitter->addWidget(timelineSection);
+    mainLayout->addWidget(splitter);
 
-    // Rest of the UI setup remains the same...
+    // Toolbar setup remains unchanged
     QToolBar* toolbar = new QToolBar;
     addToolBar(Qt::LeftToolBarArea, toolbar);
 
@@ -92,6 +92,7 @@ void MainWindow::setupUI() {
     // Add color selection button
     QToolButton* colorButton = new QToolButton;
     colorButton->setText("Color");
+    colorButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
     colorButton->setIconSize(QSize(24, 24));
     connect(colorButton, &QToolButton::clicked, this, &MainWindow::selectColor);
@@ -110,96 +111,87 @@ void MainWindow::setupUI() {
         this, &MainWindow::setBrushSize);
     toolbar->addWidget(sizeSpinBox);
 
-    ///Styling using CSS
+    // Adjust toolbar font size
+    QFont font = toolbar->font();
+    font.setPointSize(12);
+    toolbar->setFont(font);
+
+    // Apply existing CSS styles
     toolbar->setStyleSheet(R"( 
- /* Toolbar frumos și centrat */
+/* ───── Toolbar elegant ───── */
 QToolBar {
-    background-color: #2c2c2c;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #2e2e2e, stop:1 #262626);
     border: 1px solid #444;
-    padding: 6px;
-    border-radius: 8px;
-    spacing: 8px;
-    qproperty-alignment: AlignCenter; /* Toate pe mijloc */
+    border-radius: 10px;
+    padding: 12px 16px;
+    spacing: 14px;
 }
 
-/* Butoane frumoase */
+/* ───── Butoane cu iconiță și text dedesubt ───── */
 QToolButton {
-    background-color: #3c3f41;
-    color: #f8f8f8;
-    border: 1px solid #555;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-weight: bold;
-    margin: 4px;
-    min-width: 80px; /* Face toate butoanele la fel si centrabile */
-}
+    qproperty-toolButtonStyle: Qt::ToolButtonTextUnderIcon;
+    qproperty-iconSize: 36px;
 
-/* La hover si click */
-QToolButton:hover {
-    background-color: #505357;
-    border: 1px solid #777;
-}
-
-QToolButton:pressed {
-    background-color: #292b2c;
-    border: 1px solid #555;
-}
-
-/* Etichete */
-QLabel {
-    color: #f0f0f0;
-    font-size: 14px;
-    qproperty-alignment: AlignCenter; /* Centrare text */
-}
-
-QSpinBox {
-    background-color: #232629;
-    color: #f8f8f8;
-    border: 1px solid #444;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 14px;
-    qproperty-alignment: AlignCenter; /* Centrare text */
-    qproperty-iconSize: 24px;
-}
-
-
-
-
-/* Selector de culoare (QPushButton, de ex) */
-QPushButton {
-    background-color: #3c3f41;
-    color: #f8f8f8;
-    border: 1px solid #555;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-weight: bold;
+    background: #2f2f2f;
+    border: 1px solid #3c3c3c;
+    border-radius: 10px;
+    margin: 6px;
     min-width: 80px;
-    qproperty-iconSize: 24px;
-    qproperty-alignment: AlignCenter; /* Pe mijloc */
+    min-height: 90px;
+
+    color: #dddddd;  /* Text vizibil implicit */
+    font-size: 14px;
+    font-weight: bold;
 }
 
-QPushButton:hover {
-    background-color: #505357;
-    border: 1px solid #777;
+/* ───── Hover ───── */
+QToolButton:hover {
+    background: #3d3d3d;
+    border: 1px solid #666;
+    color: #ffffff;
 }
 
-QPushButton:pressed {
-    background-color: #292b2c;
+/* ───── Apăsat momentan ───── */
+QToolButton:pressed {
+    background: #1f1f1f;
     border: 1px solid #555;
 }
-/* Selector de culoare (QPushButton, de ex) */
-QPushButton:checked {
-    background-color: #505357;
-    border: 1px solid #777;
-    color: #f8f8f8;
+
+/* ───── Apăsat permanent (checked) ───── */
+QToolButton:checked {
+    background: #5c8aff;     /* Albastru elegant */
+    border: 2px solid #aaccff;
+    color: #ffffff;
+}
+
+/* ───── Alte controale ───── */
+QPushButton#colorSelector {
+    background: #444;
+    color: #fff;
+    border: 2px solid #777;
+    border-radius: 8px;
+    padding: 8px 16px;
+    min-width: 100px;
     font-weight: bold;
-    qproperty-iconSize: 24px;
-    qproperty-alignment: AlignCenter; /* Pe mijloc */
-})");
+    font-size: 13px;
+}
+
+QPushButton#colorSelector:hover {
+    background: #666;
+    border-color: #aaa;
+}
+
+QPushButton#colorSelector:pressed {
+    background: #333;
+    border-color: #999;
+}
+
+)");
 
     statusBar();
 }
+
 void MainWindow::setupMenus() {
     // Create File menu
     QMenu* fileMenu = menuBar()->addMenu("&File");
