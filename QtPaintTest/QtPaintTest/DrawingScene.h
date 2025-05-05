@@ -91,11 +91,17 @@ public:
         QPointF delta;
     };
 
+    void copySelection();
+    void cutSelection();
+    void pasteClipboard();
+
+    void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-    void keyReleaseEvent(QKeyEvent* event) override;
 
 private slots:
     void commitBrushSegment();
@@ -150,7 +156,8 @@ private:
     QPointF m_selectionStartPos;
     bool m_isSelecting = false;
     bool m_isMovingSelection = false;
-    QPointF m_lastMousePos;
+    QPointF m_lastMousePos; // Keep for selection movement logic
+    QPointF m_lastSceneMousePos; // Store the last known mouse position in the scene
     QMap<int, bool> m_keysPressed;
     QElapsedTimer m_keyPressTimer;
     int m_moveSpeed = 1;
@@ -162,10 +169,13 @@ private:
     void moveSelectedItems(const QPointF& newPos);
     void clearSelection();
     void highlightSelectedItems(bool highlight);
-    void keyPressEvent(QKeyEvent* event);
+    //void keyPressEvent(QKeyEvent* event);
 
     // --- Command Helper Function ---
     void pushCommand(QUndoCommand* command);
 
     QUndoStack* m_undoStack = nullptr; // Pointer to the undo stack
+
+    struct ClipboardItem { QPainterPath path; QColor color; qreal width; bool outlined; };
+    QList<ClipboardItem> m_clipboard;
 };

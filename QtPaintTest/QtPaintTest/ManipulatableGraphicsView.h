@@ -1,9 +1,9 @@
-\
 #pragma once
 
 #include <QGraphicsView>
 #include <QWheelEvent>
 #include <QMouseEvent>
+#include <QKeyEvent>  
 
 class ManipulatableGraphicsView : public QGraphicsView {
     Q_OBJECT
@@ -17,6 +17,8 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
 
 private:
     bool m_isPanning;

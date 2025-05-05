@@ -235,6 +235,7 @@ void DrawingScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
 
 // Handle mouse move event
 void DrawingScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
+    m_lastSceneMousePos = event->scenePos(); // Update last known scene position
     switch (m_currentTool) {
     case Brush: updateBrushStroke(event->scenePos()); break;
     case Eraser: updateEraserStroke(event->scenePos()); break;
@@ -867,8 +868,14 @@ void DrawingScene::highlightSelectedItems(bool highlight) {
     }
 }
 
-
 void DrawingScene::keyPressEvent(QKeyEvent* event) {
+    // Handle copy, cut, paste
+    if (event->modifiers() & Qt::ControlModifier) {
+        if (event->key() == Qt::Key_C) { if (!m_selectedItems.isEmpty()) copySelection(); event->accept(); return; }
+        if (event->key() == Qt::Key_X) { if (!m_selectedItems.isEmpty()) cutSelection(); event->accept(); return; }
+        if (event->key() == Qt::Key_V) { pasteClipboard(); event->accept(); return; }
+    }
+    
     if (m_currentTool == Select && !m_selectedItems.isEmpty()) {
         int key = event->key();
 
@@ -946,8 +953,6 @@ void DrawingScene::keyPressEvent(QKeyEvent* event) {
             return;
         }
     }
-
-    QGraphicsScene::keyPressEvent(event);
 }
 
 void DrawingScene::keyReleaseEvent(QKeyEvent* event) {
@@ -978,8 +983,71 @@ void DrawingScene::keyReleaseEvent(QKeyEvent* event) {
             });
         }
     }
+}
 
-    QGraphicsScene::keyReleaseEvent(event);
+void DrawingScene::copySelection() {
+    m_clipboard.clear();
+    for (StrokeItem* item : m_selectedItems) {
+        if (!item->isOutlined()) {
+            item->convertToFilledPath(); 
+        }
+        m_clipboard.append({ item->path(), item->color(), item->width(), item->isOutlined() });
+    }
+}
+
+void DrawingScene::cutSelection() {
+    copySelection();
+    for (StrokeItem* item : m_selectedItems) {
+        RemoveCommand* cmd = new RemoveCommand(this, item);
+        pushCommand(cmd);
+    }
+    clearSelection();
+}
+
+void DrawingScene::pasteClipboard() {
+    if (m_clipboard.isEmpty()) return; 
+
+    clearSelection();
+
+    QRectF clipboardBounds;
+    for (const auto& ci : m_clipboard) {
+        if (clipboardBounds.isNull()) {
+            clipboardBounds = ci.path.boundingRect();
+        } else {
+            clipboardBounds = clipboardBounds.united(ci.path.boundingRect());
+        }
+    }
+
+    QPointF centerOffset = m_lastSceneMousePos - clipboardBounds.center();
+
+    QList<StrokeItem*> pastedItems; 
+
+    for (const auto& ci : m_clipboard) {
+        StrokeItem* item = new StrokeItem(ci.color, ci.width);
+        item->setOutlined(ci.outlined);
+
+        QPainterPath movedPath = ci.path;
+        movedPath.translate(centerOffset);
+        item->setPath(movedPath);
+
+        if (ci.outlined) {
+            item->setBrush(QBrush(ci.color));
+            item->setPen(QPen(ci.color.darker(120), 0.5));
+        } else {
+            QPen pen(ci.color, ci.width);
+            pen.setCapStyle(Qt::RoundCap);
+            pen.setJoinStyle(Qt::RoundJoin);
+            item->setPen(pen);
+            item->setBrush(Qt::NoBrush);
+        }
+
+        AddCommand* cmd = new AddCommand(this, item);
+        pushCommand(cmd); 
+        pastedItems.append(item); 
+    }
+
+    m_selectedItems = pastedItems;
+    highlightSelectedItems(true);
 }
 
 DrawingScene::~DrawingScene() {

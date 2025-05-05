@@ -1,10 +1,11 @@
-
 #include "ManipulatableGraphicsView.h"
 #include <QScrollBar>
 #include <QApplication> 
+#include <DrawingScene.h>
 
 ManipulatableGraphicsView::ManipulatableGraphicsView(QWidget* parent)
     : QGraphicsView(parent), m_isPanning(false) {
+    setFocusPolicy(Qt::StrongFocus);
     setTransformationAnchor(AnchorUnderMouse);
     setResizeAnchor(AnchorUnderMouse);
     setDragMode(QGraphicsView::NoDrag); 
@@ -12,11 +13,11 @@ ManipulatableGraphicsView::ManipulatableGraphicsView(QWidget* parent)
 
 ManipulatableGraphicsView::ManipulatableGraphicsView(QGraphicsScene* scene, QWidget* parent)
     : QGraphicsView(scene, parent), m_isPanning(false) {
+    setFocusPolicy(Qt::StrongFocus);
     setTransformationAnchor(AnchorUnderMouse);
     setResizeAnchor(AnchorUnderMouse);
     setDragMode(QGraphicsView::NoDrag); 
 }
-
 
 void ManipulatableGraphicsView::wheelEvent(QWheelEvent* event) {
     qreal scaleFactor = 1.15;
@@ -64,4 +65,24 @@ void ManipulatableGraphicsView::mouseReleaseEvent(QMouseEvent* event) {
     } else {
         QGraphicsView::mouseReleaseEvent(event);
     }
+}
+
+void ManipulatableGraphicsView::keyPressEvent(QKeyEvent* event) {
+    if (scene()) {
+        if (auto drawingScene = dynamic_cast<DrawingScene*>(scene())) {
+            drawingScene->keyPressEvent(event);
+            if (event->isAccepted()) return;
+        }
+    }
+    QGraphicsView::keyPressEvent(event);
+}
+
+void ManipulatableGraphicsView::keyReleaseEvent(QKeyEvent* event) {
+    if (scene()) {
+        if (auto drawingScene = dynamic_cast<DrawingScene*>(scene())) {
+            drawingScene->keyReleaseEvent(event);
+            if (event->isAccepted()) return;
+        }
+    }
+    QGraphicsView::keyReleaseEvent(event);
 }
