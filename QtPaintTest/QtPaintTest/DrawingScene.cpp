@@ -23,7 +23,6 @@ QColor DrawingScene::currentColor() const { return m_brushColor; }
 // Add brush width setter
 void DrawingScene::setBrushWidth(qreal width) { m_brushWidth = width; }
 
-// Setter for Undo Stack
 void DrawingScene::setUndoStack(QUndoStack* stack) {
     m_undoStack = stack;
 }
@@ -33,7 +32,6 @@ void DrawingScene::pushCommand(QUndoCommand* command) {
     if (m_undoStack) {
         m_undoStack->push(command);
     } else {
-        // If no undo stack, execute directly and delete
         command->redo();
         delete command;
     }
@@ -70,7 +68,7 @@ DrawingScene::AddCommand::~AddCommand() {
 void DrawingScene::AddCommand::undo() {
     if (myScene && myItem) {
         myScene->removeItem(myItem);
-        firstExecution = false; // Item is no longer in the scene initially
+        firstExecution = false;
     }
 }
 
@@ -78,7 +76,7 @@ void DrawingScene::AddCommand::redo() {
     if (myScene && myItem) {
         myScene->addItem(myItem);
         myItem->update();
-        firstExecution = false; // Item is now in the scene
+        firstExecution = false; 
     }
 }
 
