@@ -92,6 +92,8 @@ void MainWindow::setupUI() {
     // Add color selection button
     QToolButton* colorButton = new QToolButton;
     colorButton->setText("Color");
+	colorButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
     colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
     colorButton->setIconSize(QSize(24, 24));
     connect(colorButton, &QToolButton::clicked, this, &MainWindow::selectColor);
@@ -110,96 +112,87 @@ void MainWindow::setupUI() {
         this, &MainWindow::setBrushSize);
     toolbar->addWidget(sizeSpinBox);
 
-    ///Styling using CSS
-    toolbar->setStyleSheet(R"( 
- /* Toolbar frumos și centrat */
+        // Adjust toolbar font size
+        QFont font = toolbar->font();
+        font.setPointSize(12);
+        toolbar->setFont(font);
+
+        // Apply existing CSS styles
+        toolbar->setStyleSheet(R"( 
+/* ───── Toolbar elegant ───── */
 QToolBar {
-    background-color: #2c2c2c;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #2e2e2e, stop:1 #262626);
     border: 1px solid #444;
-    padding: 6px;
-    border-radius: 8px;
-    spacing: 8px;
-    qproperty-alignment: AlignCenter; /* Toate pe mijloc */
+    border-radius: 10px;
+    padding: 12px 16px;
+    spacing: 14px;
 }
 
-/* Butoane frumoase */
+/* ───── Butoane cu iconiță și text dedesubt ───── */
 QToolButton {
-    background-color: #3c3f41;
-    color: #f8f8f8;
-    border: 1px solid #555;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-weight: bold;
-    margin: 4px;
-    min-width: 80px; /* Face toate butoanele la fel si centrabile */
-}
+    qproperty-toolButtonStyle: Qt::ToolButtonTextUnderIcon;
+    qproperty-iconSize: 36px;
 
-/* La hover si click */
-QToolButton:hover {
-    background-color: #505357;
-    border: 1px solid #777;
-}
-
-QToolButton:pressed {
-    background-color: #292b2c;
-    border: 1px solid #555;
-}
-
-/* Etichete */
-QLabel {
-    color: #f0f0f0;
-    font-size: 14px;
-    qproperty-alignment: AlignCenter; /* Centrare text */
-}
-
-QSpinBox {
-    background-color: #232629;
-    color: #f8f8f8;
-    border: 1px solid #444;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 14px;
-    qproperty-alignment: AlignCenter; /* Centrare text */
-    qproperty-iconSize: 24px;
-}
-
-
-
-
-/* Selector de culoare (QPushButton, de ex) */
-QPushButton {
-    background-color: #3c3f41;
-    color: #f8f8f8;
-    border: 1px solid #555;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-weight: bold;
+    background: #2f2f2f;
+    border: 1px solid #3c3c3c;
+    border-radius: 10px;
+    margin: 6px;
     min-width: 80px;
-    qproperty-iconSize: 24px;
-    qproperty-alignment: AlignCenter; /* Pe mijloc */
+    min-height: 90px;
+
+    color: #dddddd;  /* Text vizibil implicit */
+    font-size: 14px;
+    font-weight: bold;
 }
 
-QPushButton:hover {
-    background-color: #505357;
-    border: 1px solid #777;
+/* ───── Hover ───── */
+QToolButton:hover {
+    background: #3d3d3d;
+    border: 1px solid #666;
+    color: #ffffff;
 }
 
-QPushButton:pressed {
-    background-color: #292b2c;
+/* ───── Apăsat momentan ───── */
+QToolButton:pressed {
+    background: #1f1f1f;
     border: 1px solid #555;
 }
-/* Selector de culoare (QPushButton, de ex) */
-QPushButton:checked {
-    background-color: #505357;
-    border: 1px solid #777;
-    color: #f8f8f8;
-    font-weight: bold;
-    qproperty-iconSize: 24px;
-    qproperty-alignment: AlignCenter; /* Pe mijloc */
-})");
 
-    statusBar();
+/* ───── Apăsat permanent (checked) ───── */
+QToolButton:checked {
+    background: #5c8aff;     /* Albastru elegant */
+    border: 2px solid #aaccff;
+    color: #ffffff;
 }
+
+/* ───── Alte controale ───── */
+QPushButton#colorSelector {
+    background: #444;
+    color: #fff;
+    border: 2px solid #777;
+    border-radius: 8px;
+    padding: 8px 16px;
+    min-width: 100px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+QPushButton#colorSelector:hover {
+    background: #666;
+    border-color: #aaa;
+}
+
+QPushButton#colorSelector:pressed {
+    background: #333;
+    border-color: #999;
+}
+
+)");
+
+        statusBar();
+    }
+
 void MainWindow::setupMenus() {
     // Create File menu
     QMenu* fileMenu = menuBar()->addMenu("&File");
