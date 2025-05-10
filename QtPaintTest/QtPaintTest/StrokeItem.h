@@ -7,6 +7,7 @@
 class StrokeItem : public QGraphicsPathItem {
 public:
 	StrokeItem(const QColor& color, qreal width);
+	StrokeItem(const QColor& fillColor);
 	void setOutlined(bool outlined);
 	void convertToFilledPath();
 	QColor color() const;

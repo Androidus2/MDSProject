@@ -500,6 +500,7 @@ void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::
     }
 }
 
+
 // Fill Implementation
 // Apply fill at the clicked position
 void DrawingScene::applyFill(const QPointF& pos) {
@@ -696,13 +697,10 @@ void DrawingScene::applyFill(const QPointF& pos) {
             }
         }
 
-        // Create a yellow fill item with this path
-        StrokeItem* fill = new StrokeItem(m_brushColor, 0); // Instead of Qt::yellow
+        // Create a filled shape using the new constructor
+        StrokeItem* fill = new StrokeItem(m_brushColor);
         fill->setPath(fillPath);
         addItem(fill);
-        fill->setPath(fillPath);
-        addItem(fill);
-
     }
 }
 // Selection Implementation
