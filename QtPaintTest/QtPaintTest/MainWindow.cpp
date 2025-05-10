@@ -291,6 +291,13 @@ void MainWindow::onFrameSelected(int frame) {
 }
 
 void MainWindow::onAddFrame() {
+	// Remember whether onion skin is enabled
+	bool wasOnionSkinEnabled = m_onionSkinEnabled;
+	// Disable onion skin temporarily
+	if (m_onionSkinEnabled) {
+        toggleOnionSkin(false);
+	}
+
     // Create new scene
     DrawingScene* newScene = new DrawingScene();
     newScene->setSceneRect(-500, -500, 1000, 1000);
@@ -321,9 +328,13 @@ void MainWindow::onAddFrame() {
     m_timeline->setFrames(m_frames.size(), m_currentFrame);
     m_view->setScene(m_frames[m_currentFrame]);
 
-    if (m_onionSkinEnabled) {
-        updateOnionSkin();
-    }
+	// Re-enable onion skin if it was previously enabled
+	if (wasOnionSkinEnabled) {
+		toggleOnionSkin(true);
+	}
+	// Update the color button icon
+	m_colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
+	m_brushSizeSpinBox->setValue(m_frames[m_currentFrame]->brushWidth());
 }
 
 void MainWindow::onRemoveFrame() {
