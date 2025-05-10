@@ -393,9 +393,14 @@ void DrawingScene::finalizeEraserStroke() {
     // Get items that intersect with the eraser
     QList<QGraphicsItem*> intersectingItems = items(eraserQtPath);
 
-    // Process only the strokes that the eraser actually intersects
+    // Process only the strokes that the eraser actually intersects, excluding onion skins
     for (QGraphicsItem* item : intersectingItems) {
         if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
+            // Skip items that are part of onion skin groups
+            if (stroke->parentItem()) {
+                continue;
+            }
+
             // Make sure the stroke is converted to filled path if not already
             if (!stroke->isOutlined()) {
                 stroke->convertToFilledPath();
@@ -498,15 +503,33 @@ void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::
 // Fill Implementation
 // Apply fill at the clicked position
 void DrawingScene::applyFill(const QPointF& pos) {
-    // Create a temporary image of the current scene
+    // Create a temporary image of the current scene, excluding onion skin items
     QRectF sceneRect = this->sceneRect();
     QImage image(sceneRect.size().toSize(), QImage::Format_ARGB32);
     image.fill(Qt::transparent);
 
+    // Save the current visibility state of onion skin items
+    QList<QGraphicsItem*> hiddenItems;
+    for (QGraphicsItem* item : items()) {
+        if (item->parentItem()) {
+            // This is likely an onion skin item
+            if (item->isVisible()) {
+                item->setVisible(false);
+                hiddenItems.append(item);
+            }
+        }
+    }
+
+    // Render the scene without onion skin items
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
     render(&painter);
     painter.end();
+
+    // Restore visibility of hidden items
+    for (QGraphicsItem* item : hiddenItems) {
+        item->setVisible(true);
+    }   
 
     // Convert scene position to image coordinates
     int x = qRound(pos.x() - sceneRect.left());
@@ -692,6 +715,11 @@ void DrawingScene::startSelection(const QPointF& pos) {
 
     for (QGraphicsItem* item : itemsAtPos) {
         if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
+            // Skip items that are part of onion skin groups
+            if (stroke->parentItem()) {
+                continue;
+            }
+
             clickedOnAnyItem = true;
 
             if (m_selectedItems.contains(stroke)) {
@@ -764,12 +792,13 @@ void DrawingScene::updateSelection(const QPointF& pos) {
 
 void DrawingScene::finalizeSelection() {
     if (m_isSelecting && m_selectionRect) {
-        // Get items within selection rectangle
+        // Items within selection rectangle
         QList<QGraphicsItem*> itemsInRect = items(m_selectionRect->rect());
 
         for (QGraphicsItem* item : itemsInRect) {
             if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
-                if (!m_selectedItems.contains(stroke)) {
+                // Only select items that aren't part of onion skin groups
+                if (!stroke->parentItem() && !m_selectedItems.contains(stroke)) {
                     m_selectedItems.append(stroke);
                 }
             }
@@ -790,7 +819,7 @@ void DrawingScene::finalizeSelection() {
     else if (m_isMovingSelection) {
         m_isMovingSelection = false;
 
-        // Update transform handles
+        // Create transform handles
         if (!m_selectedItems.isEmpty()) {
             createSelectionBox();
         }
