@@ -15,6 +15,18 @@ StrokeItem::StrokeItem(const QColor& color, qreal width)
 	}
 }
 
+StrokeItem::StrokeItem(const QColor& fillColor)
+    : m_color(fillColor), m_width(0), m_isOutlined(true)  // Note: isOutlined=true for filled shapes
+{
+    // Set up a proper filled shape
+    setBrush(QBrush(fillColor));
+
+    // Thin outline for better definition
+    QPen outlinePen(fillColor.darker(120), 0.5);
+    outlinePen.setJoinStyle(Qt::RoundJoin);
+    setPen(outlinePen);
+}
+
 void StrokeItem::setOutlined(bool outlined) {
     m_isOutlined = outlined;
 }
