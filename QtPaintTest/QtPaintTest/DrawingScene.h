@@ -63,6 +63,8 @@ private:
     void updateEraserStroke(const QPointF& pos);
     void finalizeEraserStroke();
     void processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::Path64& eraserPath);
+    QList<QPainterPath> findDisconnectedComponents(const QPainterPath& complexPath);
+    bool subpathsIntersect(const QPainterPath& path1, const QPainterPath& path2);
 
     // Fill Implementation
     void applyFill(const QPointF& pos);

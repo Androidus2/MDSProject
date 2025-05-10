@@ -415,7 +415,7 @@ void DrawingScene::finalizeEraserStroke() {
 }
 // Process the eraser on a single stroke
 void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::Path64& eraserPath) {
-    // If the stroke is being transformed, apply transform to its path first
+    // Get the stroke path with transform applied
     QPainterPath strokeScenePath = stroke->path();
 
     // Apply any transform to get scene coordinates
@@ -424,80 +424,216 @@ void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::
         strokeScenePath = sceneTransform.map(strokeScenePath);
     }
 
-    // Convert the stroke path to Clipper format
-    Clipper2Lib::Path64 strokePath = DrawingEngineUtils::convertPathToClipper(strokeScenePath);
+    // Convert eraser path to Qt directly
+    QPainterPath eraserQtPath = DrawingEngineUtils::convertSingleClipperPath(eraserPath);
 
-    // Create paths collections
-    Clipper2Lib::Paths64 subj, clip, solution;
-    subj.push_back(strokePath);
-    clip.push_back(eraserPath);
-
-    // Perform the difference operation
-    Clipper2Lib::Clipper64 clipper;
-    clipper.PreserveCollinear(true);
-    clipper.AddSubject(subj);
-    clipper.AddClip(clip);
-
-    clipper.Execute(Clipper2Lib::ClipType::Difference,
-        Clipper2Lib::FillRule::NonZero,
-        solution);
-
-    // If nothing remains, remove the stroke
-    if (solution.empty()) {
-        removeItem(stroke);
-        delete stroke;
-        return;
-    }
-
-    // Get original color
+    // Save original color and remove the original stroke
     QColor originalColor = stroke->color();
-
-    // Remove the original stroke
     removeItem(stroke);
     delete stroke;
 
-    // Group paths by outer/inner contours based on their orientation
-    std::vector<std::pair<QPainterPath, std::vector<QPainterPath>>> shapes;
+    // APPROACH: Use Qt's subtracted function and then find separate components
+    QPainterPath resultPath = strokeScenePath.subtracted(eraserQtPath);
 
-    for (const auto& path : solution) {
-        if (path.size() < 3) continue; // Skip too small paths
+    // If nothing remains, we're done
+    if (resultPath.isEmpty()) {
+        return;
+    }
 
-        // Convert to Qt path
-        QPainterPath qtPath = DrawingEngineUtils::convertSingleClipperPath(path);
+    // Find disconnected components using floodfill-like algorithm
+    QList<QPainterPath> separatePaths = findDisconnectedComponents(resultPath);
 
-        // Check if this is an outer or inner contour based on area
-        bool isOuter = Clipper2Lib::Area(path) > 0;
-
-        if (isOuter) {
-            // This is an outer contour, add it as a new shape
-            shapes.push_back(std::make_pair(qtPath, std::vector<QPainterPath>()));
+    // Create a new StrokeItem for each separate component
+    for (const QPainterPath& path : separatePaths) {
+        if (!path.isEmpty()) {
+            StrokeItem* newStroke = new StrokeItem(originalColor, 0);
+            newStroke->setPath(path);
+            newStroke->setBrush(QBrush(originalColor));
+            newStroke->setPen(QPen(originalColor.darker(120), 0.5));
+            newStroke->setOutlined(true);
+            addItem(newStroke);
         }
-        else {
-            // This is a hole, add to the most recent outer contour
-            if (!shapes.empty()) {
-                shapes.back().second.push_back(qtPath);
+    }
+}
+
+// Add this helper function to find disconnected components in a complex path
+QList<QPainterPath> DrawingScene::findDisconnectedComponents(const QPainterPath& complexPath) {
+    QList<QPainterPath> components;
+
+    // Use QPainterPath elementCount and elementAt to analyze the path
+    int elementCount = complexPath.elementCount();
+    if (elementCount <= 1) {
+        if (!complexPath.isEmpty()) {
+            components.append(complexPath);
+        }
+        return components;
+    }
+
+    // Track subpaths by their starting positions
+    QMap<QPair<qreal, qreal>, int> subpathIndices;
+    QList<QPainterPath> subpaths;
+
+    QPainterPath currentSubpath;
+    bool subpathStarted = false;
+
+    // Extract individual subpaths
+    for (int i = 0; i < elementCount; i++) {
+        QPainterPath::Element element = complexPath.elementAt(i);
+
+        switch (element.type) {
+        case QPainterPath::MoveToElement:
+            // End previous subpath if any
+            if (subpathStarted && !currentSubpath.isEmpty()) {
+                subpaths.append(currentSubpath);
+                currentSubpath = QPainterPath();
+            }
+
+            // Start new subpath
+            currentSubpath.moveTo(element.x, element.y);
+            subpathStarted = true;
+            break;
+
+        case QPainterPath::LineToElement:
+            if (subpathStarted) {
+                currentSubpath.lineTo(element.x, element.y);
+            }
+            break;
+
+        case QPainterPath::CurveToElement:
+            if (subpathStarted && i + 2 < elementCount) {
+                QPainterPath::Element ctrl2 = complexPath.elementAt(i + 1);
+                QPainterPath::Element endPoint = complexPath.elementAt(i + 2);
+
+                if (ctrl2.type == QPainterPath::CurveToDataElement &&
+                    endPoint.type == QPainterPath::CurveToDataElement) {
+                    currentSubpath.cubicTo(
+                        element.x, element.y,
+                        ctrl2.x, ctrl2.y,
+                        endPoint.x, endPoint.y
+                    );
+                    i += 2; // Skip the control points we just processed
+                }
+            }
+            break;
+
+        case QPainterPath::CurveToDataElement:
+            // These are handled in the CurveToElement case
+            break;
+        }
+    }
+
+    // Add the last subpath if any
+    if (subpathStarted && !currentSubpath.isEmpty()) {
+        subpaths.append(currentSubpath);
+    }
+
+    // Group subpaths into connected components based on containment
+    QList<QList<int>> connectedGroups;
+    QVector<bool> processed(subpaths.size(), false);
+
+    for (int i = 0; i < subpaths.size(); i++) {
+        if (processed[i]) continue;
+
+        // Start a new group with this subpath
+        QList<int> group;
+        group.append(i);
+        processed[i] = true;
+
+        // Check all other unprocessed subpaths
+        bool addedMore;
+        do {
+            addedMore = false;
+
+            for (int j = 0; j < subpaths.size(); j++) {
+                if (processed[j]) continue;
+
+                // Check against all subpaths in the current group
+                for (int groupIdx : group) {
+                    // If one contains the other OR they intersect, they're connected
+                    QRectF rect1 = subpaths[groupIdx].boundingRect();
+                    QRectF rect2 = subpaths[j].boundingRect();
+
+                    if (rect1.intersects(rect2)) {
+                        QPointF testPoint = subpaths[j].pointAtPercent(0.0);
+                        if (subpaths[groupIdx].contains(testPoint) ||
+                            subpaths[j].contains(subpaths[groupIdx].pointAtPercent(0.0)) ||
+                            subpathsIntersect(subpaths[groupIdx], subpaths[j])) {
+
+                            group.append(j);
+                            processed[j] = true;
+                            addedMore = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        } while (addedMore);
+
+        connectedGroups.append(group);
+    }
+
+    // Create a path for each connected group
+    for (const QList<int>& group : connectedGroups) {
+        QPainterPath connectedPath;
+
+        // First, handle outer subpaths (those not contained in any other)
+        for (int i : group) {
+            bool isOuter = true;
+            for (int j : group) {
+                if (i != j && subpaths[j].contains(subpaths[i].pointAtPercent(0.0))) {
+                    isOuter = false;
+                    break;
+                }
+            }
+
+            if (isOuter) {
+                if (connectedPath.isEmpty()) {
+                    connectedPath = subpaths[i];
+                }
+                else {
+                    connectedPath = connectedPath.united(subpaths[i]);
+                }
             }
         }
-    }
 
-    // Create strokes for each shape with its holes
-    for (const auto& shapePair : shapes) {
-        QPainterPath fullPath = shapePair.first;
+        // Then handle inner subpaths (holes)
+        for (int i : group) {
+            bool isInner = false;
+            for (int j : group) {
+                if (i != j && subpaths[j].contains(subpaths[i].pointAtPercent(0.0))) {
+                    isInner = true;
+                    break;
+                }
+            }
 
-        // Add holes to the path using subtraction
-        for (const auto& hole : shapePair.second) {
-            fullPath = fullPath.subtracted(hole);
+            if (isInner) {
+                // Only subtract if we have an outer path already
+                if (!connectedPath.isEmpty()) {
+                    connectedPath = connectedPath.subtracted(subpaths[i]);
+                }
+            }
         }
 
-        // Create a new stroke with the complex path
-        StrokeItem* newStroke = new StrokeItem(originalColor, 0);
-        newStroke->setPath(fullPath);
-        newStroke->setBrush(QBrush(originalColor));
-        newStroke->setPen(QPen(originalColor.darker(120), 0.5));
-        newStroke->setOutlined(true);
-
-        addItem(newStroke);
+        if (!connectedPath.isEmpty()) {
+            // Ensure consistent fill rule
+            connectedPath.setFillRule(Qt::WindingFill);
+            components.append(connectedPath);
+        }
     }
+
+    return components;
+}
+
+// Helper to determine if two subpaths intersect
+bool DrawingScene::subpathsIntersect(const QPainterPath& path1, const QPainterPath& path2) {
+    // First do a fast check with bounding rects
+    if (!path1.boundingRect().intersects(path2.boundingRect())) {
+        return false;
+    }
+
+    // A simple approach is to check if their intersection is non-empty
+    QPainterPath intersection = path1.intersected(path2);
+    return !intersection.isEmpty();
 }
 
 
