@@ -1,5 +1,7 @@
 #pragma once
 #include <QtWidgets>
+#include <QUndoStack>
+#include <QUndoView>
 #include "DrawingScene.h"
 #include "TimelineWidget.h"
 #include "ManipulatableGraphicsView.h"
@@ -24,6 +26,7 @@ private:
     void setupUI();
     void setupMenus();
     void setupTools();
+    void setupUndoRedo();
     QIcon createColorIcon(const QColor& color);
 
     void selectColor();
@@ -43,6 +46,11 @@ private:
     QAction* m_onionSkinAction;
     QSlider* m_opacitySlider;
     QCheckBox* m_onionSkinCheckBox;
+
+    // Undo/Redo stack
+    QUndoStack* m_undoStack;
+    QAction* m_undoAction;
+    QAction* m_redoAction;
 
     void updateOnionSkin();
     void addOnionSkinFrame(int frameIndex, float opacityMultiplier = 1.0f);

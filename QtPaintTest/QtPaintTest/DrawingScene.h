@@ -1,6 +1,8 @@
 #pragma once
 #include <QtWidgets>
 #include <clipper2/clipper.h>
+#include <QUndoCommand>
+#include <QUndoStack>
 #include "DrawingEngineUtils.h"
 #include "StrokeItem.h"
 
@@ -31,10 +33,80 @@ public:
 
     // Brush width setter
     void setBrushWidth(qreal width);
-	qreal brushWidth() const;
+    qreal brushWidth() const;
+
+    // Undo/Redo functionality
+    void setUndoStack(QUndoStack* stack);
 
     // Reset all selection-related state (for file operations)
     void resetSelectionState();
+
+    // --- Command Classes for Undo/Redo ---
+    class AddCommand : public QUndoCommand {
+    public:
+        AddCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent = nullptr);
+        ~AddCommand();
+        void undo() override;
+        void redo() override;
+    private:
+        DrawingScene* myScene;
+        StrokeItem* myItem;
+        bool firstExecution;
+    };
+
+    class RemoveCommand : public QUndoCommand {
+    public:
+        RemoveCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent = nullptr);
+        ~RemoveCommand();
+        void undo() override;
+        void redo() override;
+    private:
+        DrawingScene* myScene;
+        StrokeItem* myItem;
+    };
+
+    class EraseCommand : public QUndoCommand {
+    public:
+        EraseCommand(DrawingScene* scene,
+            const QList<StrokeItem*>& originals,
+            const QList<StrokeItem*>& results,
+            QUndoCommand* parent = nullptr);
+        ~EraseCommand();
+        void undo() override;
+        void redo() override;
+    private:
+        DrawingScene* myScene;
+        QList<StrokeItem*> originalItems; // Items before erase
+        QList<StrokeItem*> resultItems;   // Items after erase
+        bool firstExecution;
+    };
+
+    class MoveCommand : public QUndoCommand {
+    public:
+        MoveCommand(DrawingScene* scene,
+            const QList<StrokeItem*>& items,
+            const QPointF& moveDelta,
+            QUndoCommand* parent = nullptr);
+        ~MoveCommand();
+        void undo() override;
+        void redo() override;
+        bool mergeWith(const QUndoCommand* other) override;
+        int id() const override { return 1; } // ID for merging moves
+
+        // Add a public accessor for getting number of items
+        int itemCount() const { return movedItems.size(); }
+
+    private:
+        QTime timestamp;
+        DrawingScene* myScene;
+        QList<StrokeItem*> movedItems;
+        QPointF delta;
+    };
+
+    // Clipboard operations
+    void copySelection();
+    void cutSelection();
+    void pasteClipboard();
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
@@ -43,10 +115,10 @@ protected:
     void keyReleaseEvent(QKeyEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
 
-
 public slots:
     void handleKeyPress(QKeyEvent* event);
     void handleKeyRelease(QKeyEvent* event);
+    void updateSelectionUI();
 
 private slots:
     void commitBrushSegment();
@@ -82,7 +154,7 @@ private:
     void clearSelection();
     void highlightSelectedItems(bool highlight);
 
-    // NEW: Simplified Transform Implementation
+    // Simplified Transform Implementation
     void createSelectionBox();
     void removeSelectionBox();
     TransformHandleType hitTestTransformHandle(const QPointF& pos);
@@ -93,6 +165,9 @@ private:
     void rotateSelection(qreal angle);
     void scaleSelection(qreal sx, qreal sy, const QPointF& fixedPoint);
     void applyTransformToItems();
+
+    // Command helper function
+    void pushCommand(QUndoCommand* command);
 
     // Member variables
     ToolType m_currentTool;
@@ -122,9 +197,24 @@ private:
     bool m_isSelecting = false;
     bool m_isMovingSelection = false;
     QPointF m_lastMousePos;
+    QPointF m_lastSceneMousePos; // Store last known mouse position for paste operation
     QMap<int, bool> m_keysPressed;
     QElapsedTimer m_keyPressTimer;
     int m_moveSpeed = 1;
+
+    // Undo stack reference
+    QUndoStack* m_undoStack = nullptr;
+    QMap<StrokeItem*, QPointF> m_startPositions;
+
+
+    // Clipboard data structure
+    struct ClipboardItem {
+        QPainterPath path = QPainterPath();
+        QColor color = Qt::black;
+        qreal width = 1.0;
+        bool outlined = false;
+    };
+    QList<ClipboardItem> m_clipboard;
 
     struct {
         QGraphicsRectItem* box = nullptr;

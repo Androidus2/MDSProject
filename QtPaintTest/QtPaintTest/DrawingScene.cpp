@@ -1,6 +1,296 @@
 #include "DrawingScene.h"
 #include <fstream>
 
+// Add these implementations to your existing file
+
+// Set the undo stack
+void DrawingScene::setUndoStack(QUndoStack* stack) {
+    m_undoStack = stack;
+
+    if (m_undoStack) {
+        connect(m_undoStack, &QUndoStack::indexChanged, this, &DrawingScene::updateSelectionUI);
+    }
+}
+
+// Helper to push command onto the stack
+void DrawingScene::pushCommand(QUndoCommand* command) {
+    if (m_undoStack) {
+        m_undoStack->push(command);
+    }
+    else {
+        command->redo();
+        delete command;
+    }
+}
+
+// AddCommand Implementation
+DrawingScene::AddCommand::AddCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent) : QUndoCommand(parent), myScene(scene), myItem(item), firstExecution(true)
+{
+    setText(QString("Add Shape %1").arg(QString::number(reinterpret_cast<uintptr_t>(item), 16)));
+}
+
+DrawingScene::AddCommand::~AddCommand() {
+    // If the command is destroyed and the item is still owned by it (i.e., was undone)
+    // we need to delete the item to prevent memory leaks.
+    if (!firstExecution && myItem) {
+        // Check if item is still in the scene; if not, we own it.
+        bool inScene = false;
+        if (myScene) {
+            for (QGraphicsItem* sceneItem : myScene->items()) {
+                if (sceneItem == myItem) {
+                    inScene = true;
+                    break;
+                }
+            }
+        }
+        if (!inScene) {
+            delete myItem;
+            myItem = nullptr;
+        }
+    }
+}
+
+void DrawingScene::AddCommand::undo() {
+    if (myScene && myItem) {
+        myScene->removeItem(myItem);
+        firstExecution = false;
+    }
+}
+
+void DrawingScene::AddCommand::redo() {
+    if (myScene && myItem) {
+        myScene->addItem(myItem);
+        myItem->update();
+        firstExecution = false;
+    }
+}
+
+// RemoveCommand Implementation
+DrawingScene::RemoveCommand::RemoveCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent) : QUndoCommand(parent), myScene(scene), myItem(item)
+{
+    setText(QString("Remove Shape %1").arg(QString::number(reinterpret_cast<uintptr_t>(item), 16)));
+}
+
+DrawingScene::RemoveCommand::~RemoveCommand() {
+    // QUndoStack manages command deletion. We assume the item's lifetime
+    // is managed elsewhere (e.g., by the scene or another command like EraseCommand)
+    // unless explicitly handled (like in AddCommand's destructor).
+}
+
+void DrawingScene::RemoveCommand::undo() {
+    if (myScene && myItem) {
+        myScene->addItem(myItem);
+        myItem->update();
+    }
+}
+
+void DrawingScene::RemoveCommand::redo() {
+    if (myScene && myItem) {
+        myScene->removeItem(myItem);
+    }
+}
+
+// EraseCommand Implementation
+DrawingScene::EraseCommand::EraseCommand(DrawingScene* scene,
+    const QList<StrokeItem*>& originals,
+    const QList<StrokeItem*>& results,
+    QUndoCommand* parent) : QUndoCommand(parent), myScene(scene), originalItems(originals), resultItems(results), firstExecution(true)
+{
+    setText(QString("Erase %1 shape(s)").arg(originals.size()));
+}
+
+// Destructor needs to handle potential ownership of items if undone
+DrawingScene::EraseCommand::~EraseCommand() {
+    if (!firstExecution) { // If undone
+        // Result items were removed from scene by undo(), we own them now.
+        qDeleteAll(resultItems);
+    }
+    else {
+        // Original items were removed by redo() or initial execution.
+        // If stack is cleared, we might own them.
+        // Check if originals are still in the scene.
+        bool originalsInScene = false;
+        if (myScene && !originalItems.isEmpty()) {
+            QList<QGraphicsItem*> sceneItems = myScene->items();
+            for (StrokeItem* item : originalItems) {
+                if (sceneItems.contains(item)) {
+                    originalsInScene = true;
+                    break;
+                }
+            }
+        }
+        if (!originalsInScene) {
+            qDeleteAll(originalItems);
+        }
+    }
+    originalItems.clear();
+    resultItems.clear();
+}
+
+void DrawingScene::EraseCommand::undo() {
+    if (!myScene) return;
+    for (StrokeItem* item : resultItems) {
+        myScene->removeItem(item);
+    }
+    for (StrokeItem* item : originalItems) {
+        myScene->addItem(item);
+        item->update();
+    }
+    firstExecution = false;
+}
+
+void DrawingScene::EraseCommand::redo() {
+    if (!myScene) return;
+    for (StrokeItem* item : originalItems) {
+        myScene->removeItem(item);
+    }
+    for (StrokeItem* item : resultItems) {
+        myScene->addItem(item);
+        item->update();
+    }
+    firstExecution = true;
+}
+
+// MoveCommand Implementation
+DrawingScene::MoveCommand::MoveCommand(DrawingScene* scene,
+    const QList<StrokeItem*>& items,
+    const QPointF& moveDelta,
+    QUndoCommand* parent)
+    : QUndoCommand(parent), myScene(scene), movedItems(items), delta(moveDelta)
+{
+    setText(QString("Move %1 shape(s)").arg(items.size()));
+    timestamp = QTime::currentTime(); 
+}
+
+
+DrawingScene::MoveCommand::~MoveCommand() {
+    // Items are managed by the scene, nothing to delete here
+}
+
+void DrawingScene::MoveCommand::redo() {
+    if (!myScene) return;
+    for (StrokeItem* item : movedItems) {
+        if (item->scene() == myScene) {
+            item->moveBy(delta.x(), delta.y());
+        }
+    }
+}
+
+void DrawingScene::MoveCommand::undo() {
+    if (!myScene) return;
+    for (StrokeItem* item : movedItems) {
+        if (item->scene() == myScene) {
+            item->moveBy(-delta.x(), -delta.y());
+        }
+    }
+}
+
+// Merge consecutive moves of the same items
+bool DrawingScene::MoveCommand::mergeWith(const QUndoCommand* other) {
+    const MoveCommand* otherMove = dynamic_cast<const MoveCommand*>(other);
+    if (!otherMove) return false;
+
+    // Ensure we're merging with the last command on the stack
+    if (otherMove->movedItems.size() != this->movedItems.size()) return false;
+
+    QSet<StrokeItem*> mySet(movedItems.begin(), movedItems.end());
+    QSet<StrokeItem*> otherSet(otherMove->movedItems.begin(), otherMove->movedItems.end());
+    if (mySet != otherSet) return false;
+
+    // Only merge if commands were created within 300ms of each other
+    // (This groups moves that are part of the same operation)
+    int msSinceLastMove = timestamp.msecsTo(otherMove->timestamp);
+    if (msSinceLastMove > 300) return false;
+
+    // Merge the deltas
+    delta += otherMove->delta;
+    timestamp = otherMove->timestamp; 
+    return true;
+}
+
+// Clipboard Operations
+void DrawingScene::copySelection() {
+    m_clipboard.clear();
+    for (StrokeItem* item : m_selectedItems) {
+        if (!item->isOutlined()) {
+            item->convertToFilledPath();
+        }
+        m_clipboard.append({ item->path(), item->color(), item->width(), item->isOutlined() });
+    }
+}
+
+void DrawingScene::cutSelection() {
+    copySelection();
+
+    // We need to create a copy of the selected items since RemoveCommand will modify the scene
+    QList<StrokeItem*> itemsToRemove = m_selectedItems;
+
+    for (StrokeItem* item : itemsToRemove) {
+        RemoveCommand* cmd = new RemoveCommand(this, item);
+        pushCommand(cmd);
+    }
+
+    clearSelection();
+}
+
+void DrawingScene::pasteClipboard() {
+    if (m_clipboard.isEmpty()) return;
+
+    clearSelection();
+
+    // Calculate the bounding rect of all clipboard items
+    QRectF clipboardBounds;
+    for (const auto& ci : m_clipboard) {
+        if (clipboardBounds.isNull()) {
+            clipboardBounds = ci.path.boundingRect();
+        }
+        else {
+            clipboardBounds = clipboardBounds.united(ci.path.boundingRect());
+        }
+    }
+
+    // Calculate the offset to apply to all items 
+    QPointF clipboardCenter = clipboardBounds.center();
+    QPointF offsetToApply = m_lastSceneMousePos - clipboardCenter;
+
+    QList<StrokeItem*> pastedItems;
+
+    for (const auto& ci : m_clipboard) {
+        StrokeItem* item = new StrokeItem(ci.color, ci.width);
+        item->setOutlined(ci.outlined);
+
+        QPainterPath movedPath = ci.path;
+        movedPath.translate(offsetToApply);
+        item->setPath(movedPath);
+
+        if (ci.outlined) {
+            item->setBrush(QBrush(ci.color));
+            item->setPen(QPen(ci.color.darker(120), 0.5));
+        }
+        else {
+            QPen pen(ci.color, ci.width);
+            pen.setCapStyle(Qt::RoundCap);
+            pen.setJoinStyle(Qt::RoundJoin);
+            item->setPen(pen);
+            item->setBrush(Qt::NoBrush);
+        }
+
+        AddCommand* cmd = new AddCommand(this, item);
+        pushCommand(cmd);
+        pastedItems.append(item);
+    }
+
+    // Select the newly pasted items
+    m_selectedItems = pastedItems;
+    highlightSelectedItems(true);
+
+    // Create selection box around the pasted items
+    if (!pastedItems.isEmpty()) {
+        createSelectionBox();
+    }
+}
+
+
 DrawingScene::DrawingScene(QObject* parent)
     : QGraphicsScene(parent), m_currentTool(Brush),
     m_brushColor(Qt::black), m_brushWidth(15),
@@ -69,6 +359,8 @@ void DrawingScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
 }
 
 void DrawingScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
+    m_lastSceneMousePos = event->scenePos(); // Update last known scene position
+
     // Handle transform operations
     if (m_transform.isTransforming) {
         updateTransform(event->scenePos());
@@ -84,6 +376,7 @@ void DrawingScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
     }
     QGraphicsScene::mouseMoveEvent(event);
 }
+
 
 void DrawingScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
     // Handle transform operations
@@ -253,12 +546,12 @@ void DrawingScene::updateTemporaryPath(QGraphicsPathItem* tempItem) {
 void DrawingScene::startBrushStroke(const QPointF& pos) {
     // Create the real path item
     m_currentPath = new StrokeItem(m_brushColor, m_brushWidth);
+    // DON'T add to scene yet - only show temporarily
     addItem(m_currentPath);
 
     // Create the temporary path item for visual feedback
     m_tempPathItem = new QGraphicsPathItem();
     QPen tempPen(m_brushColor, m_brushWidth);
-    //tempPen.setStyle(Qt::DotLine);
     m_tempPathItem->setPen(tempPen);
     addItem(m_tempPathItem);
 
@@ -272,6 +565,8 @@ void DrawingScene::startBrushStroke(const QPointF& pos) {
     // Start the cooldown timer
     m_cooldownTimer.start();
 }
+
+
 // Update the brush stroke
 void DrawingScene::updateBrushStroke(const QPointF& pos) {
     if (!m_currentPath) return;
@@ -303,16 +598,28 @@ void DrawingScene::finalizeBrushStroke() {
     // Convert to filled path
     m_currentPath->convertToFilledPath();
 
-    // Clean up
+    // Important: Remove from scene before creating command
+    removeItem(m_currentPath);
+
+    // Create Add command (will add to scene in redo())
+    AddCommand* cmd = new AddCommand(this, m_currentPath);
+
+    // Clean up temporary display items
     if (m_tempPathItem) {
         removeItem(m_tempPathItem);
         delete m_tempPathItem;
         m_tempPathItem = nullptr;
     }
 
+    // Store and reset state BEFORE pushing command
+    StrokeItem* itemToAdd = m_currentPath;
     m_currentPath = nullptr;
     m_points.clear();
+
+    // Push command (will call redo() which adds item)
+    pushCommand(cmd);
 }
+
 
 // Eraser Implementation
 // Start the eraser stroke
@@ -350,7 +657,8 @@ void DrawingScene::updateEraserStroke(const QPointF& pos) {
     m_points << pos;
     updateTemporaryPath(m_tempEraserPathItem);
 }
-// Finalize the eraser stroke
+
+
 void DrawingScene::finalizeEraserStroke() {
     // Stop the timer
     m_cooldownTimer.stop();
@@ -393,6 +701,9 @@ void DrawingScene::finalizeEraserStroke() {
     // Get items that intersect with the eraser
     QList<QGraphicsItem*> intersectingItems = items(eraserQtPath);
 
+    QList<StrokeItem*> originalItemsAffected;
+    QList<StrokeItem*> resultingItems;
+
     // Process only the strokes that the eraser actually intersects, excluding onion skins
     for (QGraphicsItem* item : intersectingItems) {
         if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
@@ -406,14 +717,64 @@ void DrawingScene::finalizeEraserStroke() {
                 stroke->convertToFilledPath();
             }
 
-            // Apply boolean difference using Clipper2
-            processEraserOnStroke(stroke, eraserClipperPath);
+            // Record original item
+            originalItemsAffected.append(stroke);
+
+            // Get the stroke path with transform applied
+            QPainterPath strokeScenePath = stroke->path();
+
+            // Apply any transform to get scene coordinates
+            if (!stroke->transform().isIdentity() || stroke->pos() != QPointF(0, 0)) {
+                QTransform sceneTransform = stroke->sceneTransform();
+                strokeScenePath = sceneTransform.map(strokeScenePath);
+            }
+
+            // Use eraserQtPath directly
+            QPainterPath eraserPath = eraserQtPath;
+
+            // Save original color
+            QColor originalColor = stroke->color();
+
+            // APPROACH: Use Qt's subtracted function and then find separate components
+            QPainterPath resultPath = strokeScenePath.subtracted(eraserPath);
+
+            // If nothing remains, continue (item will be deleted by EraseCommand)
+            if (resultPath.isEmpty()) {
+                continue;
+            }
+
+            // Find disconnected components using floodfill-like algorithm
+            QList<QPainterPath> separatePaths = findDisconnectedComponents(resultPath);
+
+            // Create a new StrokeItem for each separate component
+            for (const QPainterPath& path : separatePaths) {
+                if (!path.isEmpty()) {
+                    StrokeItem* newStroke = new StrokeItem(originalColor, 0);
+                    newStroke->setPath(path);
+                    newStroke->setBrush(QBrush(originalColor));
+                    newStroke->setPen(QPen(originalColor.darker(120), 0.5));
+                    newStroke->setOutlined(true);
+                    resultingItems.append(newStroke);
+                    // Don't add to scene yet - EraseCommand will do that
+                }
+            }
         }
     }
 
+    // Reset state
     m_points.clear();
+
+    // Only create command if something changed
+    if (!originalItemsAffected.isEmpty()) {
+        // Create Erase command - this will handle removing original items and adding new ones
+        EraseCommand* cmd = new EraseCommand(this, originalItemsAffected, resultingItems);
+        pushCommand(cmd);
+    }
 }
+
+
 // Process the eraser on a single stroke
+// This function should be removed or updated to use the command pattern
 void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::Path64& eraserPath) {
     // Get the stroke path with transform applied
     QPainterPath strokeScenePath = stroke->path();
@@ -427,10 +788,8 @@ void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::
     // Convert eraser path to Qt directly
     QPainterPath eraserQtPath = DrawingEngineUtils::convertSingleClipperPath(eraserPath);
 
-    // Save original color and remove the original stroke
+    // Save original color
     QColor originalColor = stroke->color();
-    removeItem(stroke);
-    delete stroke;
 
     // APPROACH: Use Qt's subtracted function and then find separate components
     QPainterPath resultPath = strokeScenePath.subtracted(eraserQtPath);
@@ -440,10 +799,12 @@ void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::
         return;
     }
 
-    // Find disconnected components using floodfill-like algorithm
+    // Find disconnected components
     QList<QPainterPath> separatePaths = findDisconnectedComponents(resultPath);
 
-    // Create a new StrokeItem for each separate component
+    // Create list of new items but DON'T add them directly to scene
+    QList<StrokeItem*> resultItems;
+
     for (const QPainterPath& path : separatePaths) {
         if (!path.isEmpty()) {
             StrokeItem* newStroke = new StrokeItem(originalColor, 0);
@@ -451,9 +812,15 @@ void DrawingScene::processEraserOnStroke(StrokeItem* stroke, const Clipper2Lib::
             newStroke->setBrush(QBrush(originalColor));
             newStroke->setPen(QPen(originalColor.darker(120), 0.5));
             newStroke->setOutlined(true);
-            addItem(newStroke);
+            resultItems.append(newStroke);
         }
     }
+
+    // Create an EraseCommand to handle the change
+    QList<StrokeItem*> originalItems;
+    originalItems.append(stroke);
+    EraseCommand* cmd = new EraseCommand(this, originalItems, resultItems);
+    pushCommand(cmd);
 }
 
 // Add this helper function to find disconnected components in a complex path
@@ -666,7 +1033,7 @@ void DrawingScene::applyFill(const QPointF& pos) {
     // Restore visibility of hidden items
     for (QGraphicsItem* item : hiddenItems) {
         item->setVisible(true);
-    }   
+    }
 
     // Convert scene position to image coordinates
     int x = qRound(pos.x() - sceneRect.left());
@@ -833,12 +1200,21 @@ void DrawingScene::applyFill(const QPointF& pos) {
             }
         }
 
-        // Create a filled shape using the new constructor
-        StrokeItem* fill = new StrokeItem(m_brushColor);
+        // Create a filled shape
+        StrokeItem* fill = new StrokeItem(m_brushColor, 0);
         fill->setPath(fillPath);
-        addItem(fill);
+        fill->setBrush(QBrush(m_brushColor));
+        fill->setPen(QPen(m_brushColor.darker(120), 0.5));
+        fill->setOutlined(true);
+
+        // Create Add command - don't add fill to scene directly
+        AddCommand* cmd = new AddCommand(this, fill);
+        pushCommand(cmd);
     }
 }
+
+
+
 // Selection Implementation
 void DrawingScene::startSelection(const QPointF& pos) {
     // If clicking on a selected item, start moving
@@ -860,6 +1236,12 @@ void DrawingScene::startSelection(const QPointF& pos) {
                 clickedOnSelected = true;
                 m_isMovingSelection = true;
                 m_lastMousePos = pos;
+
+                // Store starting positions of all selected items
+                m_startPositions.clear();
+                for (StrokeItem* selectedItem : m_selectedItems) {
+                    m_startPositions[selectedItem] = selectedItem->pos();
+                }
                 break;
             }
             else if (!(QApplication::keyboardModifiers() & Qt::ShiftModifier)) {
@@ -869,6 +1251,10 @@ void DrawingScene::startSelection(const QPointF& pos) {
                 highlightSelectedItems(true);
                 m_isMovingSelection = true;
                 m_lastMousePos = pos;
+
+                // Store starting position
+                m_startPositions.clear();
+                m_startPositions[stroke] = stroke->pos();
                 return;
             }
             else {
@@ -877,6 +1263,12 @@ void DrawingScene::startSelection(const QPointF& pos) {
                 highlightSelectedItems(true);
                 m_isMovingSelection = true;
                 m_lastMousePos = pos;
+
+                // Store starting positions of all selected items
+                m_startPositions.clear();
+                for (StrokeItem* selectedItem : m_selectedItems) {
+                    m_startPositions[selectedItem] = selectedItem->pos();
+                }
                 return;
             }
         }
@@ -915,12 +1307,20 @@ void DrawingScene::updateSelection(const QPointF& pos) {
         m_selectionRect->setRect(rect);
     }
     else if (m_isMovingSelection) {
-        // Move selected items
         QPointF delta = pos - m_lastMousePos;
-        for (StrokeItem* item : m_selectedItems) {
-            item->moveBy(delta.x(), delta.y());
+
+        if (!m_selectedItems.isEmpty() && delta.manhattanLength() > 0.01) {
+            // Just update the visual positions during dragging - no commands yet
+            for (StrokeItem* item : m_selectedItems) {
+                if (item->scene() == this) {
+                    item->moveBy(delta.x(), delta.y());
+                }
+            }
+            m_lastMousePos = pos;
         }
-        m_lastMousePos = pos;
+        else if (!m_selectedItems.isEmpty()) {
+            m_lastMousePos = pos;
+        }
     }
 }
 
@@ -951,6 +1351,46 @@ void DrawingScene::finalizeSelection() {
         }
     }
     else if (m_isMovingSelection) {
+        // Create a final move command for the entire movement
+        if (!m_selectedItems.isEmpty() && !m_startPositions.isEmpty()) {
+            // Calculate final move delta for each item
+            QList<StrokeItem*> movedItems;
+            QPointF totalDelta;
+
+            // Calculate the average delta of all moved items
+            int itemCount = 0;
+            for (StrokeItem* item : m_selectedItems) {
+                if (m_startPositions.contains(item)) {
+                    QPointF startPos = m_startPositions[item];
+                    QPointF endPos = item->pos();
+                    QPointF itemDelta = endPos - startPos;
+
+                    // Only consider items that actually moved
+                    if (itemDelta.manhattanLength() > 0.01) {
+                        movedItems.append(item);
+                        totalDelta += itemDelta;
+                        itemCount++;
+                    }
+                }
+            }
+
+            // If any items were moved, create a command
+            if (!movedItems.isEmpty()) {
+                totalDelta /= itemCount; // Average delta
+                MoveCommand* cmd = new MoveCommand(this, movedItems, totalDelta);
+
+                // Important: Move items back to start positions first
+                for (StrokeItem* item : movedItems) {
+                    item->setPos(m_startPositions[item]);
+                }
+
+                // Then push command (which will call redo() and apply the move)
+                pushCommand(cmd);
+            }
+
+            m_startPositions.clear();
+        }
+
         m_isMovingSelection = false;
 
         // Create transform handles
@@ -993,8 +1433,41 @@ void DrawingScene::highlightSelectedItems(bool highlight) {
     }
 }
 
-
 void DrawingScene::keyPressEvent(QKeyEvent* event) {
+    // Handle copy, cut, paste
+    if (event->modifiers() & Qt::ControlModifier) {
+        if (event->key() == Qt::Key_C) {
+            if (!m_selectedItems.isEmpty()) {
+                copySelection();
+                event->accept();
+                return;
+            }
+        }
+        if (event->key() == Qt::Key_X) {
+            if (!m_selectedItems.isEmpty()) {
+                cutSelection();
+                event->accept();
+                return;
+            }
+        }
+        if (event->key() == Qt::Key_V) {
+            pasteClipboard();
+            event->accept();
+            return;
+        }
+        // Add Ctrl+Z and Ctrl+Y for undo/redo
+        if (event->key() == Qt::Key_Z && m_undoStack) {
+            m_undoStack->undo();
+            event->accept();
+            return;
+        }
+        if (event->key() == Qt::Key_Y && m_undoStack) {
+            m_undoStack->redo();
+            event->accept();
+            return;
+        }
+    }
+
     if (m_currentTool == Select && !m_selectedItems.isEmpty()) {
         int key = event->key();
 
@@ -1004,6 +1477,16 @@ void DrawingScene::keyPressEvent(QKeyEvent* event) {
         // Store the key press state
         if (isNewKeyPress) {
             m_keysPressed[key] = true;
+
+            // If this is the first arrow key press, store starting positions
+            bool isArrowKey = (key == Qt::Key_Left || key == Qt::Key_Right ||
+                key == Qt::Key_Up || key == Qt::Key_Down);
+
+            if (isArrowKey && m_startPositions.isEmpty()) {
+                for (StrokeItem* selectedItem : m_selectedItems) {
+                    m_startPositions[selectedItem] = selectedItem->pos();
+                }
+            }
         }
 
         // Start or restart timer for arrow keys with any arrow press
@@ -1051,24 +1534,26 @@ void DrawingScene::keyPressEvent(QKeyEvent* event) {
         if (m_keysPressed.value(Qt::Key_Down)) dy += m_moveSpeed;
 
         if (dx != 0 || dy != 0) {
-            // Apply the movement
+            // Apply the movement visually (without commands yet)
             for (StrokeItem* item : m_selectedItems) {
-                item->moveBy(dx, dy);
+                if (item->scene() == this) {
+                    item->moveBy(dx, dy);
+                }
             }
 
-            // Prevent event from propagating to parent (stops canvas movement)
             event->accept();
             return;
         }
 
         // Handle delete key for selected items
         if (key == Qt::Key_Delete) {
-            for (StrokeItem* item : m_selectedItems) {
-                removeItem(item);
-                delete item;
+            QList<StrokeItem*> itemsToRemove = m_selectedItems;
+
+            for (StrokeItem* item : itemsToRemove) {
+                RemoveCommand* cmd = new RemoveCommand(this, item);
+                pushCommand(cmd);
             }
-            // Clean up selection UI elements
-            removeSelectionBox();
+
             m_selectedItems.clear();
             event->accept();
             return;
@@ -1080,13 +1565,64 @@ void DrawingScene::keyPressEvent(QKeyEvent* event) {
 
 void DrawingScene::keyReleaseEvent(QKeyEvent* event) {
     int key = event->key();
+    bool wasArrowKey = (key == Qt::Key_Left || key == Qt::Key_Right ||
+        key == Qt::Key_Up || key == Qt::Key_Down);
 
     // Mark key as released
     if (m_keysPressed.contains(key)) {
         m_keysPressed[key] = false;
 
+        // If an arrow key was released and we have starting positions,
+        // and there are no more arrow keys pressed, create a move command
+        if (wasArrowKey && !m_startPositions.isEmpty()) {
+            bool anyArrowStillPressed =
+                m_keysPressed.value(Qt::Key_Left) ||
+                m_keysPressed.value(Qt::Key_Right) ||
+                m_keysPressed.value(Qt::Key_Up) ||
+                m_keysPressed.value(Qt::Key_Down);
+
+            if (!anyArrowStillPressed) {
+                // Create move command for the keyboard movement
+                QList<StrokeItem*> movedItems;
+                QPointF totalDelta;
+
+                // Calculate the average delta from start positions
+                int itemCount = 0;
+                for (StrokeItem* item : m_selectedItems) {
+                    if (m_startPositions.contains(item)) {
+                        QPointF startPos = m_startPositions[item];
+                        QPointF endPos = item->pos();
+                        QPointF itemDelta = endPos - startPos;
+
+                        // Only consider items that moved
+                        if (itemDelta.manhattanLength() > 0.01) {
+                            movedItems.append(item);
+                            totalDelta += itemDelta;
+                            itemCount++;
+                        }
+                    }
+                }
+
+                // If any items moved, create a command
+                if (!movedItems.isEmpty()) {
+                    totalDelta /= itemCount; // Average delta
+                    MoveCommand* cmd = new MoveCommand(this, movedItems, totalDelta);
+
+                    // Move items back to start positions first
+                    for (StrokeItem* item : movedItems) {
+                        item->setPos(m_startPositions[item]);
+                    }
+
+                    // Push command to apply the move
+                    pushCommand(cmd);
+                }
+
+                // Clear start positions
+                m_startPositions.clear();
+            }
+        }
+
         // Only reset the timer if all arrow keys are released
-        // AND there's no new arrow key pressed within a short timeframe
         if (!m_keysPressed.value(Qt::Key_Left) &&
             !m_keysPressed.value(Qt::Key_Right) &&
             !m_keysPressed.value(Qt::Key_Up) &&
@@ -1530,4 +2066,15 @@ void DrawingScene::handleKeyPress(QKeyEvent* event) {
 
 void DrawingScene::handleKeyRelease(QKeyEvent* event) {
     keyReleaseEvent(event);
+}
+
+void DrawingScene::updateSelectionUI() {
+    if (!m_selectedItems.isEmpty()) {
+        removeSelectionBox();
+        createSelectionBox();
+        highlightSelectedItems(true);
+    }
+    else {
+        removeSelectionBox();
+    }
 }

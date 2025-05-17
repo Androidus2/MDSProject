@@ -3,17 +3,22 @@
 #include "ManipulatableGraphicsView.h"
 
 MainWindow::MainWindow() : m_currentFrame(0) {
+    // Create the undo stack first
+    m_undoStack = new QUndoStack(this);
+
     // Create initial frames (3 instead of just 1)
     for (int i = 0; i < 3; i++) {
         DrawingScene* scene = new DrawingScene();
         scene->setSceneRect(-500, -500, 1000, 1000);
         scene->setBackgroundBrush(Qt::white);
+        scene->setUndoStack(m_undoStack); // Set the undo stack for each scene
         m_frames.append(scene);
     }
 
     setupUI();
     setupTools();
     setupMenus();
+    setupUndoRedo();
 
     // Set up animation timer
     m_animationTimer = new QTimer(this);
@@ -21,6 +26,76 @@ MainWindow::MainWindow() : m_currentFrame(0) {
 
     // Set initial framerate (12 FPS)
     onFrameRateChanged(m_timeline->getFrameRate());
+}
+
+void MainWindow::setupUndoRedo() {
+    // Create undo/redo actions
+    m_undoAction = m_undoStack->createUndoAction(this, tr("&Undo"));
+    m_undoAction->setShortcut(QKeySequence::Undo);
+    m_undoAction->setIcon(QIcon::fromTheme("edit-undo"));
+
+    m_redoAction = m_undoStack->createRedoAction(this, tr("&Redo"));
+    m_redoAction->setShortcut(QKeySequence::Redo);
+    m_redoAction->setIcon(QIcon::fromTheme("edit-redo"));
+
+    // Get or create Edit menu
+    QMenu* editMenu = nullptr;
+    for (QAction* action : menuBar()->actions()) {
+        if (action->text().contains("&Edit")) {
+            editMenu = action->menu();
+            break;
+        }
+    }
+
+    if (!editMenu) {
+        editMenu = menuBar()->addMenu(tr("&Edit"));
+    }
+
+    // undo/redo actions at the beginning of Edit menu
+    if (editMenu->actions().isEmpty()) {
+        editMenu->addAction(m_undoAction);
+        editMenu->addAction(m_redoAction);
+        editMenu->addSeparator(); // Add separator after actions
+    }
+    else {
+        // Insert undo at beginning
+        editMenu->insertAction(editMenu->actions().first(), m_undoAction);
+
+        // Get the updated actions list
+        QList<QAction*> actions = editMenu->actions();
+        int undoIndex = actions.indexOf(m_undoAction);
+
+        // Insert redo after undo
+        if (undoIndex != -1 && undoIndex + 1 < actions.size()) {
+            editMenu->insertAction(actions[undoIndex + 1], m_redoAction);
+        }
+        else {
+            editMenu->addAction(m_redoAction);
+        }
+
+        // Get the updated actions list again
+        actions = editMenu->actions();
+        int redoIndex = actions.indexOf(m_redoAction);
+
+        // Insert separator after redo
+        if (redoIndex != -1 && redoIndex + 1 < actions.size()) {
+            editMenu->insertSeparator(actions[redoIndex + 1]);
+        }
+        else {
+            editMenu->addSeparator();
+        }
+    }
+
+    // Toolbar for undo/redo actions
+    QToolBar* editToolbar = addToolBar(tr("Edit"));
+    editToolbar->addAction(m_undoAction);
+    editToolbar->addAction(m_redoAction);
+
+    // Create the undo view at the end, after everything else is set up
+    QDockWidget* undoDock = new QDockWidget(tr("History"), this);
+    QUndoView* undoView = new QUndoView(m_undoStack);
+    undoDock->setWidget(undoView);
+    addDockWidget(Qt::RightDockWidgetArea, undoDock);
 }
 
 MainWindow::~MainWindow() {
@@ -284,9 +359,11 @@ void MainWindow::setBrushSize(int size) {
 void MainWindow::onFrameSelected(int frame) {
     if (frame >= 0 && frame < m_frames.size()) {
         if (m_view->scene()) {
-            disconnect(m_view, &ManipulatableGraphicsView::keyPressedInView,static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyPress);
-            disconnect(m_view, &ManipulatableGraphicsView::keyReleasedInView,static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyRelease);
+            disconnect(m_view, &ManipulatableGraphicsView::keyPressedInView, static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyPress);
+            disconnect(m_view, &ManipulatableGraphicsView::keyReleasedInView, static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyRelease);
         }
+
+        m_undoStack->clear();
 
         m_currentFrame = frame;
         m_view->setScene(m_frames[frame]);
@@ -299,25 +376,30 @@ void MainWindow::onFrameSelected(int frame) {
         m_timeline->setFrames(m_frames.size(), m_currentFrame);
     }
 
+    if (m_frames[m_currentFrame]->selectedItems().size() > 0) {
+        m_frames[m_currentFrame]->updateSelectionUI();
+    }
+
     if (m_onionSkinEnabled) {
         updateOnionSkin();
     }
 }
 
 void MainWindow::onAddFrame() {
-	// Remember whether onion skin is enabled
-	bool wasOnionSkinEnabled = m_onionSkinEnabled;
-	// Disable onion skin temporarily
-	if (m_onionSkinEnabled) {
+    // Remember whether onion skin is enabled
+    bool wasOnionSkinEnabled = m_onionSkinEnabled;
+    // Disable onion skin temporarily
+    if (m_onionSkinEnabled) {
         toggleOnionSkin(false);
-	}
+    }
 
     // Create new scene
     DrawingScene* newScene = new DrawingScene();
-    newScene->setSceneRect(-500, -500, 1000, 1000);
+    newScene->setSceneRect(-1000, -1000, 2000, 2000);
     newScene->setBackgroundBrush(Qt::white);
     newScene->setColor(m_frames[m_currentFrame]->currentColor());
     newScene->setBrushWidth(m_frames[m_currentFrame]->brushWidth());
+    newScene->setUndoStack(m_undoStack); // Set the undo stack for the new scene
 
     // Copy all items from current scene to new scene
     foreach(QGraphicsItem * item, m_frames[m_currentFrame]->items()) {
@@ -342,13 +424,17 @@ void MainWindow::onAddFrame() {
     m_timeline->setFrames(m_frames.size(), m_currentFrame);
     m_view->setScene(m_frames[m_currentFrame]);
 
-	// Re-enable onion skin if it was previously enabled
-	if (wasOnionSkinEnabled) {
-		toggleOnionSkin(true);
-	}
-	// Update the color button icon
-	m_colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
-	m_brushSizeSpinBox->setValue(m_frames[m_currentFrame]->brushWidth());
+    // Connect key event handling to the new frame
+    connect(m_view, &ManipulatableGraphicsView::keyPressedInView, m_frames[m_currentFrame], &DrawingScene::handleKeyPress);
+    connect(m_view, &ManipulatableGraphicsView::keyReleasedInView, m_frames[m_currentFrame], &DrawingScene::handleKeyRelease);
+
+    // Re-enable onion skin if it was previously enabled
+    if (wasOnionSkinEnabled) {
+        toggleOnionSkin(true);
+    }
+    // Update the color button icon
+    m_colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
+    m_brushSizeSpinBox->setValue(m_frames[m_currentFrame]->brushWidth());
 }
 
 void MainWindow::onRemoveFrame() {
