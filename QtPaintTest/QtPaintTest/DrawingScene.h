@@ -43,6 +43,11 @@ protected:
     void keyReleaseEvent(QKeyEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
 
+
+public slots:
+    void handleKeyPress(QKeyEvent* event);
+    void handleKeyRelease(QKeyEvent* event);
+
 private slots:
     void commitBrushSegment();
 

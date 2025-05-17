@@ -36,7 +36,7 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
-    <QtInstall>6.8.2_msvc2022_64</QtInstall>
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
     <QtModules>core;gui;widgets;opengl;openglwidgets;svg;</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
@@ -112,6 +112,7 @@
     <ClCompile Include="DrawingScene.cpp" />
     <ClCompile Include="FileIOOperations.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="ManipulatableGraphicsView.cpp" />
     <ClCompile Include="StrokeItem.cpp" />
     <ClCompile Include="TimelineWidget.cpp" />
     <ClCompile Include="Utils\ClipFileLoad.cpp" />
@@ -142,6 +143,7 @@
     <ClInclude Include="FileIOOperations.h" />
     <QtMoc Include="MainWindow.h" />
     <QtMoc Include="FrameItem.h" />
+    <QtMoc Include="ManipulatableGraphicsView.h" />
     <ClInclude Include="StrokeItem.h" />
     <QtMoc Include="TimelineWidget.h" />
     <ClInclude Include="Utils\ClipFileLoad.h" />

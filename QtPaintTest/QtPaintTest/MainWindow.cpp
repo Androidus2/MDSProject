@@ -1,5 +1,6 @@
 ﻿#include "MainWindow.h"
 #include "FileIOOperations.h"
+#include "ManipulatableGraphicsView.h"
 
 MainWindow::MainWindow() : m_currentFrame(0) {
     // Create initial frames (3 instead of just 1)
@@ -32,7 +33,7 @@ void MainWindow::setupUI() {
     setCentralWidget(centralWidget);
 
     // Drawing view
-    m_view = new QGraphicsView(m_frames[m_currentFrame]);
+    m_view = new ManipulatableGraphicsView(m_frames[m_currentFrame], this);
     mainLayout->addWidget(m_view);
 
     // Timeline section with onion skin controls
@@ -191,6 +192,10 @@ QPushButton#colorSelector:pressed {
 )");
 
         statusBar();
+        connect(m_view, &ManipulatableGraphicsView::keyPressedInView,
+            m_frames[m_currentFrame], &DrawingScene::handleKeyPress);
+        connect(m_view, &ManipulatableGraphicsView::keyReleasedInView,
+            m_frames[m_currentFrame], &DrawingScene::handleKeyRelease);
     }
 
 void MainWindow::setupMenus() {
@@ -278,8 +283,17 @@ void MainWindow::setBrushSize(int size) {
 
 void MainWindow::onFrameSelected(int frame) {
     if (frame >= 0 && frame < m_frames.size()) {
+        if (m_view->scene()) {
+            disconnect(m_view, &ManipulatableGraphicsView::keyPressedInView,static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyPress);
+            disconnect(m_view, &ManipulatableGraphicsView::keyReleasedInView,static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyRelease);
+        }
+
         m_currentFrame = frame;
         m_view->setScene(m_frames[frame]);
+
+        connect(m_view, &ManipulatableGraphicsView::keyPressedInView, m_frames[frame], &DrawingScene::handleKeyPress);
+        connect(m_view, &ManipulatableGraphicsView::keyReleasedInView, m_frames[frame], &DrawingScene::handleKeyRelease);
+
         m_colorButton->setIcon(createColorIcon(m_frames[frame]->currentColor()));
         m_brushSizeSpinBox->setValue(m_frames[frame]->brushWidth());
         m_timeline->setFrames(m_frames.size(), m_currentFrame);

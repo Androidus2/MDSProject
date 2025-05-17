@@ -2,6 +2,7 @@
 #include <QtWidgets>
 #include "DrawingScene.h"
 #include "TimelineWidget.h"
+#include "ManipulatableGraphicsView.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -30,7 +31,7 @@ private:
 
     QList<DrawingScene*> m_frames;
     int m_currentFrame;
-    QGraphicsView* m_view;
+    ManipulatableGraphicsView* m_view;
     QToolButton* m_colorButton;
     QSpinBox* m_brushSizeSpinBox;
     TimelineWidget* m_timeline;

@@ -1523,3 +1523,11 @@ void DrawingScene::applyTransformToItems() {
     }
     createSelectionBox();
 }
+
+void DrawingScene::handleKeyPress(QKeyEvent* event) {
+    keyPressEvent(event);
+}
+
+void DrawingScene::handleKeyRelease(QKeyEvent* event) {
+    keyReleaseEvent(event);
+}
