@@ -1,5 +1,6 @@
 #include "FileIOOperations.h"
 #include "DrawingScene.h"
+#include "DrawingManager.h"
 
 QString FileIOOperations::currentFilePath = "";
 
@@ -7,7 +8,12 @@ void FileIOOperations::newDrawing(QGraphicsScene& scene, MainWindow& window) {
     if (maybeSave(scene, window)) {
         // Reset selection state first
         if (auto* drawingScene = dynamic_cast<DrawingScene*>(&scene)) {
-            drawingScene->resetSelectionState();
+            if (DrawingManager::getInstance().getCurrentTool()->toolName() == "Select") {
+                SelectTool* selectTool = dynamic_cast<SelectTool*>(DrawingManager::getInstance().getCurrentTool());
+                if (selectTool) {
+                    selectTool->resetSelectionState();
+                }
+            }
         }
 
         scene.clear();
@@ -137,7 +143,12 @@ bool FileIOOperations::loadFile(const QString& fileName, QGraphicsScene& scene, 
 
     // Reset selection state first - this prevents crashes with the selection tool
     if (auto* drawingScene = dynamic_cast<DrawingScene*>(&scene)) {
-        drawingScene->resetSelectionState();
+        if (DrawingManager::getInstance().getCurrentTool()->toolName() == "Select") {
+            SelectTool* selectTool = dynamic_cast<SelectTool*>(DrawingManager::getInstance().getCurrentTool());
+            if (selectTool) {
+                selectTool->resetSelectionState();
+            }
+        }
     }
 
     // Clear current scene

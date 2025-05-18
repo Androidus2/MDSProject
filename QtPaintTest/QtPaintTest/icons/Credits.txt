@@ -1,0 +1,15 @@
+Brush:
+<a href="https://www.flaticon.com/free-icons/paint-brush" title="paint-brush icons">Paint-brush icons created by Freepik - Flaticon</a>
+https://www.flaticon.com/free-icon/paint-brush_587377?term=brush&related_id=587377
+
+Eraser: 
+<a href="https://www.flaticon.com/free-icons/eraser" title="eraser icons">Eraser icons created by Freepik - Flaticon</a>
+https://www.flaticon.com/free-icon/eraser_3894663?term=eraser&related_id=3894663
+
+Bucket:
+<a href="https://www.flaticon.com/free-icons/bucket" title="bucket icons">Bucket icons created by Those Icons - Flaticon</a>
+https://www.flaticon.com/free-icon/paint-bucket_483918?term=bucket&related_id=483918
+
+Select:
+<a href="https://www.flaticon.com/free-icons/area" title="area icons">Area icons created by Pixel perfect - Flaticon</a>
+https://www.flaticon.com/free-icon/select_637354?term=select&page=1&position=48&origin=search&related_id=637354
