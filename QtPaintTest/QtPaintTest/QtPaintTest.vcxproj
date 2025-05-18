@@ -36,7 +36,7 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
-    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtInstall>6.8.2_msvc2022_64</QtInstall>
     <QtModules>core;gui;widgets;opengl;openglwidgets;svg;</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
@@ -108,11 +108,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AddCommand.cpp" />
+    <ClCompile Include="BaseTool.cpp" />
+    <ClCompile Include="BrushTool.cpp" />
     <ClCompile Include="DrawingEngineUtils.cpp" />
+    <ClCompile Include="DrawingManager.cpp" />
     <ClCompile Include="DrawingScene.cpp" />
+    <ClCompile Include="EraseCommand.cpp" />
+    <ClCompile Include="EraserTool.cpp" />
     <ClCompile Include="FileIOOperations.cpp" />
+    <ClCompile Include="FillTool.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="ManipulatableGraphicsView.cpp" />
+    <ClCompile Include="MoveCommand.cpp" />
+    <ClCompile Include="RemoveCommand.cpp" />
+    <ClCompile Include="SelectTool.cpp" />
     <ClCompile Include="StrokeItem.cpp" />
     <ClCompile Include="TimelineWidget.cpp" />
     <ClCompile Include="Utils\ClipFileLoad.cpp" />
@@ -138,12 +148,23 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AddCommand.h" />
+    <ClInclude Include="BaseTool.h" />
+    <ClInclude Include="BrushTool.h" />
+    <ClInclude Include="ClipboardItem.h" />
     <ClInclude Include="DrawingEngineUtils.h" />
     <QtMoc Include="DrawingScene.h" />
+    <QtMoc Include="DrawingManager.h" />
+    <ClInclude Include="EraseCommand.h" />
+    <ClInclude Include="EraserTool.h" />
     <ClInclude Include="FileIOOperations.h" />
     <QtMoc Include="MainWindow.h" />
     <QtMoc Include="FrameItem.h" />
     <QtMoc Include="ManipulatableGraphicsView.h" />
+    <ClInclude Include="FillTool.h" />
+    <ClInclude Include="MoveCommand.h" />
+    <ClInclude Include="RemoveCommand.h" />
+    <ClInclude Include="SelectTool.h" />
     <ClInclude Include="StrokeItem.h" />
     <QtMoc Include="TimelineWidget.h" />
     <ClInclude Include="Utils\ClipFileLoad.h" />

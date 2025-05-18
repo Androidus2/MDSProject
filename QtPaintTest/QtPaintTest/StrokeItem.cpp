@@ -27,6 +27,24 @@ StrokeItem::StrokeItem(const QColor& fillColor)
     setPen(outlinePen);
 }
 
+StrokeItem::StrokeItem(const StrokeItem& other)
+	: m_color(other.m_color), m_width(other.m_width),
+	m_isOutlined(other.m_isOutlined), m_isSelected(other.m_isSelected),
+	m_originalPen(other.m_originalPen)
+{
+	setPen(m_originalPen);
+	setBrush(brush());
+
+	// Copy the path
+	setPath(other.path());
+
+	// Copy the transform
+	setTransform(other.transform());
+	setPos(other.pos());
+	setRotation(other.rotation());
+	setScale(other.scale());
+}
+
 void StrokeItem::setOutlined(bool outlined) {
     m_isOutlined = outlined;
 }

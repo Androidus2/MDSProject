@@ -33,6 +33,18 @@
     <Filter Include="Source Files\DrawingEngine">
       <UniqueIdentifier>{207e87ad-740d-43d5-9536-d76ace58f5ae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\DrawingEngine\Tools">
+      <UniqueIdentifier>{a688c4aa-a701-4c43-9578-d671b29b3a89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Commands">
+      <UniqueIdentifier>{74be5eb9-9ed6-48a7-b9e5-2ac028950fd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DrawingEngine\Tools">
+      <UniqueIdentifier>{0b6c64e3-2db7-42da-8818-4383a3148f57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Commands">
+      <UniqueIdentifier>{5a21aa76-e75b-4d59-b535-eed89e5abad0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="QtPaintTest.qrc">
@@ -88,6 +100,39 @@
     <ClCompile Include="TimelineWidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ManipulatableGraphicsView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseTool.cpp">
+      <Filter>Source Files\DrawingEngine\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="BrushTool.cpp">
+      <Filter>Source Files\DrawingEngine\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="EraserTool.cpp">
+      <Filter>Source Files\DrawingEngine\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="FillTool.cpp">
+      <Filter>Source Files\DrawingEngine\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="SelectTool.cpp">
+      <Filter>Source Files\DrawingEngine\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="DrawingManager.cpp">
+      <Filter>Source Files\DrawingEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="AddCommand.cpp">
+      <Filter>Source Files\Commands</Filter>
+    </ClCompile>
+    <ClCompile Include="EraseCommand.cpp">
+      <Filter>Source Files\Commands</Filter>
+    </ClCompile>
+    <ClCompile Include="MoveCommand.cpp">
+      <Filter>Source Files\Commands</Filter>
+    </ClCompile>
+    <ClCompile Include="RemoveCommand.cpp">
+      <Filter>Source Files\Commands</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\ClipFileLoad.h">
@@ -120,6 +165,36 @@
     <ClInclude Include="FileIOOperations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BaseTool.h">
+      <Filter>Header Files\DrawingEngine\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="BrushTool.h">
+      <Filter>Header Files\DrawingEngine\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="EraserTool.h">
+      <Filter>Header Files\DrawingEngine\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="FillTool.h">
+      <Filter>Header Files\DrawingEngine\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="SelectTool.h">
+      <Filter>Header Files\DrawingEngine\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="AddCommand.h">
+      <Filter>Header Files\Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="ClipboardItem.h">
+      <Filter>Header Files\DrawingEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="EraseCommand.h">
+      <Filter>Header Files\Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="RemoveCommand.h">
+      <Filter>Header Files\Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="MoveCommand.h">
+      <Filter>Header Files\Commands</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="DrawingScene.h">
@@ -133,6 +208,12 @@
     </QtMoc>
     <QtMoc Include="FrameItem.h">
       <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="ManipulatableGraphicsView.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="DrawingManager.h">
+      <Filter>Header Files\DrawingEngine</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

@@ -1,19 +1,22 @@
 ﻿#include "MainWindow.h"
 #include "FileIOOperations.h"
 #include "ManipulatableGraphicsView.h"
+#include "DrawingManager.h"
 
 MainWindow::MainWindow() : m_currentFrame(0) {
     // Create the undo stack first
     m_undoStack = new QUndoStack(this);
+	DrawingManager::getInstance().setUndoStack(m_undoStack);
 
     // Create initial frames (3 instead of just 1)
     for (int i = 0; i < 3; i++) {
         DrawingScene* scene = new DrawingScene();
         scene->setSceneRect(-500, -500, 1000, 1000);
         scene->setBackgroundBrush(Qt::white);
-        scene->setUndoStack(m_undoStack); // Set the undo stack for each scene
+        //scene->setUndoStack(m_undoStack); // Set the undo stack for each scene
         m_frames.append(scene);
     }
+	DrawingManager::getInstance().setScene(m_frames[m_currentFrame]);
 
     setupUI();
     setupTools();
@@ -26,76 +29,6 @@ MainWindow::MainWindow() : m_currentFrame(0) {
 
     // Set initial framerate (12 FPS)
     onFrameRateChanged(m_timeline->getFrameRate());
-}
-
-void MainWindow::setupUndoRedo() {
-    // Create undo/redo actions
-    m_undoAction = m_undoStack->createUndoAction(this, tr("&Undo"));
-    m_undoAction->setShortcut(QKeySequence::Undo);
-    m_undoAction->setIcon(QIcon::fromTheme("edit-undo"));
-
-    m_redoAction = m_undoStack->createRedoAction(this, tr("&Redo"));
-    m_redoAction->setShortcut(QKeySequence::Redo);
-    m_redoAction->setIcon(QIcon::fromTheme("edit-redo"));
-
-    // Get or create Edit menu
-    QMenu* editMenu = nullptr;
-    for (QAction* action : menuBar()->actions()) {
-        if (action->text().contains("&Edit")) {
-            editMenu = action->menu();
-            break;
-        }
-    }
-
-    if (!editMenu) {
-        editMenu = menuBar()->addMenu(tr("&Edit"));
-    }
-
-    // undo/redo actions at the beginning of Edit menu
-    if (editMenu->actions().isEmpty()) {
-        editMenu->addAction(m_undoAction);
-        editMenu->addAction(m_redoAction);
-        editMenu->addSeparator(); // Add separator after actions
-    }
-    else {
-        // Insert undo at beginning
-        editMenu->insertAction(editMenu->actions().first(), m_undoAction);
-
-        // Get the updated actions list
-        QList<QAction*> actions = editMenu->actions();
-        int undoIndex = actions.indexOf(m_undoAction);
-
-        // Insert redo after undo
-        if (undoIndex != -1 && undoIndex + 1 < actions.size()) {
-            editMenu->insertAction(actions[undoIndex + 1], m_redoAction);
-        }
-        else {
-            editMenu->addAction(m_redoAction);
-        }
-
-        // Get the updated actions list again
-        actions = editMenu->actions();
-        int redoIndex = actions.indexOf(m_redoAction);
-
-        // Insert separator after redo
-        if (redoIndex != -1 && redoIndex + 1 < actions.size()) {
-            editMenu->insertSeparator(actions[redoIndex + 1]);
-        }
-        else {
-            editMenu->addSeparator();
-        }
-    }
-
-    // Toolbar for undo/redo actions
-    QToolBar* editToolbar = addToolBar(tr("Edit"));
-    editToolbar->addAction(m_undoAction);
-    editToolbar->addAction(m_redoAction);
-
-    // Create the undo view at the end, after everything else is set up
-    QDockWidget* undoDock = new QDockWidget(tr("History"), this);
-    QUndoView* undoView = new QUndoView(m_undoStack);
-    undoDock->setWidget(undoView);
-    addDockWidget(Qt::RightDockWidgetArea, undoDock);
 }
 
 MainWindow::~MainWindow() {
@@ -155,22 +88,22 @@ void MainWindow::setupUI() {
     connect(m_timeline, &TimelineWidget::removeFrameRequested, this, &MainWindow::onRemoveFrame);
     connect(m_timeline, &TimelineWidget::playbackToggled, this, &MainWindow::onPlaybackToggled);
     connect(m_timeline, &TimelineWidget::frameRateChanged, this, &MainWindow::onFrameRateChanged);
-
-    // Rest of the UI setup remains the same...
+    
+	// Create a toolbar for tools
     QToolBar* toolbar = new QToolBar;
     addToolBar(Qt::LeftToolBarArea, toolbar);
 
-    toolbar->addAction("Brush", [this] { m_frames[m_currentFrame]->setTool(Brush); });
-    toolbar->addAction("Eraser", [this] { m_frames[m_currentFrame]->setTool(Eraser); });
-    toolbar->addAction("Fill", [this] { m_frames[m_currentFrame]->setTool(Fill); });
-    toolbar->addAction("Select", [this] { m_frames[m_currentFrame]->setTool(Select); });
+    toolbar->addAction("Brush", [this] { DrawingManager::getInstance().setCurrentTool("Brush"); });
+    toolbar->addAction("Eraser", [this] { DrawingManager::getInstance().setCurrentTool("Eraser"); });
+    toolbar->addAction("Fill", [this] { DrawingManager::getInstance().setCurrentTool("Fill"); });
+    toolbar->addAction("Select", [this] { DrawingManager::getInstance().setCurrentTool("Select"); });
 
     // Add color selection button
     QToolButton* colorButton = new QToolButton;
     colorButton->setText("Color");
 	colorButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
+    colorButton->setIcon(createColorIcon(DrawingManager::getInstance().getColor()));
     colorButton->setIconSize(QSize(24, 24));
     connect(colorButton, &QToolButton::clicked, this, &MainWindow::selectColor);
     toolbar->addWidget(colorButton);
@@ -188,13 +121,13 @@ void MainWindow::setupUI() {
         this, &MainWindow::setBrushSize);
     toolbar->addWidget(sizeSpinBox);
 
-        // Adjust toolbar font size
-        QFont font = toolbar->font();
-        font.setPointSize(12);
-        toolbar->setFont(font);
+    // Adjust toolbar font size
+    QFont font = toolbar->font();
+    font.setPointSize(12);
+    toolbar->setFont(font);
 
-        // Apply existing CSS styles
-        toolbar->setStyleSheet(R"( 
+    // Apply existing CSS styles
+    toolbar->setStyleSheet(R"( 
 /* ───── Toolbar elegant ───── */
 QToolBar {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -266,13 +199,12 @@ QPushButton#colorSelector:pressed {
 
 )");
 
-        statusBar();
-        connect(m_view, &ManipulatableGraphicsView::keyPressedInView,
-            m_frames[m_currentFrame], &DrawingScene::handleKeyPress);
-        connect(m_view, &ManipulatableGraphicsView::keyReleasedInView,
-            m_frames[m_currentFrame], &DrawingScene::handleKeyRelease);
-    }
-
+    statusBar();
+    connect(m_view, &ManipulatableGraphicsView::keyPressedInView,
+        m_frames[m_currentFrame], &DrawingScene::keyPressEvent);
+    connect(m_view, &ManipulatableGraphicsView::keyReleasedInView,
+        m_frames[m_currentFrame], &DrawingScene::keyReleaseEvent);
+}
 void MainWindow::setupMenus() {
     // Create File menu
     QMenu* fileMenu = menuBar()->addMenu("&File");
@@ -337,6 +269,75 @@ void MainWindow::setupTools() {
     m_frames[m_currentFrame]->setSceneRect(-500, -500, 1000, 1000);
     m_frames[m_currentFrame]->setBackgroundBrush(Qt::white);
 }
+void MainWindow::setupUndoRedo() {
+    // Create undo/redo actions
+    m_undoAction = m_undoStack->createUndoAction(this, tr("&Undo"));
+    m_undoAction->setShortcut(QKeySequence::Undo);
+    m_undoAction->setIcon(QIcon::fromTheme("edit-undo"));
+
+    m_redoAction = m_undoStack->createRedoAction(this, tr("&Redo"));
+    m_redoAction->setShortcut(QKeySequence::Redo);
+    m_redoAction->setIcon(QIcon::fromTheme("edit-redo"));
+
+    // Get or create Edit menu
+    QMenu* editMenu = nullptr;
+    for (QAction* action : menuBar()->actions()) {
+        if (action->text().contains("&Edit")) {
+            editMenu = action->menu();
+            break;
+        }
+    }
+
+    if (!editMenu) {
+        editMenu = menuBar()->addMenu(tr("&Edit"));
+    }
+
+    // undo/redo actions at the beginning of Edit menu
+    if (editMenu->actions().isEmpty()) {
+        editMenu->addAction(m_undoAction);
+        editMenu->addAction(m_redoAction);
+        editMenu->addSeparator(); // Add separator after actions
+    }
+    else {
+        // Insert undo at beginning
+        editMenu->insertAction(editMenu->actions().first(), m_undoAction);
+
+        // Get the updated actions list
+        QList<QAction*> actions = editMenu->actions();
+        int undoIndex = actions.indexOf(m_undoAction);
+
+        // Insert redo after undo
+        if (undoIndex != -1 && undoIndex + 1 < actions.size()) {
+            editMenu->insertAction(actions[undoIndex + 1], m_redoAction);
+        }
+        else {
+            editMenu->addAction(m_redoAction);
+        }
+
+        // Get the updated actions list again
+        actions = editMenu->actions();
+        int redoIndex = actions.indexOf(m_redoAction);
+
+        // Insert separator after redo
+        if (redoIndex != -1 && redoIndex + 1 < actions.size()) {
+            editMenu->insertSeparator(actions[redoIndex + 1]);
+        }
+        else {
+            editMenu->addSeparator();
+        }
+    }
+
+    // Toolbar for undo/redo actions
+    QToolBar* editToolbar = addToolBar(tr("Edit"));
+    editToolbar->addAction(m_undoAction);
+    editToolbar->addAction(m_redoAction);
+
+    // Create the undo view at the end, after everything else is set up
+    QDockWidget* undoDock = new QDockWidget(tr("History"), this);
+    QUndoView* undoView = new QUndoView(m_undoStack);
+    undoDock->setWidget(undoView);
+    addDockWidget(Qt::RightDockWidgetArea, undoDock);
+}
 
 // Create a colored icon for the color button
 QIcon MainWindow::createColorIcon(const QColor& color) {
@@ -346,39 +347,38 @@ QIcon MainWindow::createColorIcon(const QColor& color) {
 }
 
 void MainWindow::selectColor() {
-    QColor color = QColorDialog::getColor(m_frames[m_currentFrame]->currentColor(), this, "Select Color");
+    QColor color = QColorDialog::getColor(DrawingManager::getInstance().getColor(), this, "Select Color");
     if (color.isValid()) {
-        m_frames[m_currentFrame]->setColor(color);
+        DrawingManager::getInstance().setColor(color);
         m_colorButton->setIcon(createColorIcon(color));
     }
 }
 void MainWindow::setBrushSize(int size) {
-    m_frames[m_currentFrame]->setBrushWidth(size);
+    DrawingManager::getInstance().setWidth(size);
 }
 
 void MainWindow::onFrameSelected(int frame) {
     if (frame >= 0 && frame < m_frames.size()) {
         if (m_view->scene()) {
-            disconnect(m_view, &ManipulatableGraphicsView::keyPressedInView, static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyPress);
-            disconnect(m_view, &ManipulatableGraphicsView::keyReleasedInView, static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::handleKeyRelease);
+            disconnect(m_view, &ManipulatableGraphicsView::keyPressedInView, static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::keyPressEvent);
+            disconnect(m_view, &ManipulatableGraphicsView::keyReleasedInView, static_cast<DrawingScene*>(m_view->scene()), &DrawingScene::keyReleaseEvent);
         }
 
         m_undoStack->clear();
 
         m_currentFrame = frame;
         m_view->setScene(m_frames[frame]);
+        DrawingManager::getInstance().setScene(m_frames[frame]);
 
-        connect(m_view, &ManipulatableGraphicsView::keyPressedInView, m_frames[frame], &DrawingScene::handleKeyPress);
-        connect(m_view, &ManipulatableGraphicsView::keyReleasedInView, m_frames[frame], &DrawingScene::handleKeyRelease);
+        connect(m_view, &ManipulatableGraphicsView::keyPressedInView, m_frames[frame], &DrawingScene::keyPressEvent);
+        connect(m_view, &ManipulatableGraphicsView::keyReleasedInView, m_frames[frame], &DrawingScene::keyReleaseEvent);
 
-        m_colorButton->setIcon(createColorIcon(m_frames[frame]->currentColor()));
-        m_brushSizeSpinBox->setValue(m_frames[frame]->brushWidth());
         m_timeline->setFrames(m_frames.size(), m_currentFrame);
     }
 
-    if (m_frames[m_currentFrame]->selectedItems().size() > 0) {
+    /*if (m_frames[m_currentFrame]->selectedItems().size() > 0) {
         m_frames[m_currentFrame]->updateSelectionUI();
-    }
+    }*/
 
     if (m_onionSkinEnabled) {
         updateOnionSkin();
@@ -395,11 +395,8 @@ void MainWindow::onAddFrame() {
 
     // Create new scene
     DrawingScene* newScene = new DrawingScene();
-    newScene->setSceneRect(-1000, -1000, 2000, 2000);
+    newScene->setSceneRect(-500, -500, 1000, 1000);
     newScene->setBackgroundBrush(Qt::white);
-    newScene->setColor(m_frames[m_currentFrame]->currentColor());
-    newScene->setBrushWidth(m_frames[m_currentFrame]->brushWidth());
-    newScene->setUndoStack(m_undoStack); // Set the undo stack for the new scene
 
     // Copy all items from current scene to new scene
     foreach(QGraphicsItem * item, m_frames[m_currentFrame]->items()) {
@@ -412,7 +409,14 @@ void MainWindow::onAddFrame() {
     }
 
     // Reset selection state to ensure proper initialization
-    newScene->resetSelectionState();
+    //newScene->resetSelectionState();
+    if (DrawingManager::getInstance().getCurrentTool()->toolName() == "Select") {
+        // Cast to SelectTool and reset selection
+        SelectTool* selectTool = dynamic_cast<SelectTool*>(DrawingManager::getInstance().getCurrentTool());
+        if (selectTool) {
+            selectTool->resetSelectionState();
+        }
+    }
 
     // Insert after current frame (not at the end)
     m_frames.insert(m_currentFrame + 1, newScene);
@@ -420,21 +424,19 @@ void MainWindow::onAddFrame() {
     // Select the new frame
     m_currentFrame = m_currentFrame + 1;
 
+    // Connect key event handling to the new frame
+    connect(m_view, &ManipulatableGraphicsView::keyPressedInView, m_frames[m_currentFrame], &DrawingScene::keyPressEvent);
+    connect(m_view, &ManipulatableGraphicsView::keyReleasedInView, m_frames[m_currentFrame], &DrawingScene::keyReleaseEvent);
+
     // Update the timeline and view
     m_timeline->setFrames(m_frames.size(), m_currentFrame);
     m_view->setScene(m_frames[m_currentFrame]);
-
-    // Connect key event handling to the new frame
-    connect(m_view, &ManipulatableGraphicsView::keyPressedInView, m_frames[m_currentFrame], &DrawingScene::handleKeyPress);
-    connect(m_view, &ManipulatableGraphicsView::keyReleasedInView, m_frames[m_currentFrame], &DrawingScene::handleKeyRelease);
+    DrawingManager::getInstance().setScene(m_frames[m_currentFrame]);
 
     // Re-enable onion skin if it was previously enabled
     if (wasOnionSkinEnabled) {
         toggleOnionSkin(true);
     }
-    // Update the color button icon
-    m_colorButton->setIcon(createColorIcon(m_frames[m_currentFrame]->currentColor()));
-    m_brushSizeSpinBox->setValue(m_frames[m_currentFrame]->brushWidth());
 }
 
 void MainWindow::onRemoveFrame() {
@@ -443,12 +445,14 @@ void MainWindow::onRemoveFrame() {
         m_currentFrame = qMin(m_currentFrame, m_frames.size() - 1);
         m_timeline->setFrames(m_frames.size(), m_currentFrame);
         m_view->setScene(m_frames[m_currentFrame]);
+        DrawingManager::getInstance().setScene(m_frames[m_currentFrame]);
 
         if (m_onionSkinEnabled) {
             updateOnionSkin();
         }
     }
 }
+
 
 void MainWindow::onPlaybackToggled(bool playing) {
     if (playing) {
