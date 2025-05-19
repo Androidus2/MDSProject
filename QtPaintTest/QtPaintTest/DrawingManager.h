@@ -93,6 +93,10 @@ public:
 
 	// Undo/Redo functionality
 	void setUndoStack(QUndoStack* stack);
+
+	bool hasModifications() const {
+		return m_undoStack && m_undoStack->canUndo();
+	}
 private:
 
 	DrawingScene* m_scene = nullptr;
