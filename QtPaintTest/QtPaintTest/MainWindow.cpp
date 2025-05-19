@@ -88,78 +88,135 @@ void MainWindow::setupUI() {
     connect(m_timeline, &TimelineWidget::removeFrameRequested, this, &MainWindow::onRemoveFrame);
     connect(m_timeline, &TimelineWidget::playbackToggled, this, &MainWindow::onPlaybackToggled);
     connect(m_timeline, &TimelineWidget::frameRateChanged, this, &MainWindow::onFrameRateChanged);
-    
-	// Create a toolbar for tools
+
+    // Create a narrow toolbar for tools
     QToolBar* toolbar = new QToolBar;
+    toolbar->setFixedWidth(50); // Keep toolbar narrow
     addToolBar(Qt::LeftToolBarArea, toolbar);
+    toolbar->setMovable(true);
+    toolbar->setIconSize(QSize(24, 24)); // Smaller icons (was 32x32)
 
-    toolbar->addAction("Brush", [this] { DrawingManager::getInstance().setCurrentTool("Brush"); });
-    toolbar->addAction("Eraser", [this] { DrawingManager::getInstance().setCurrentTool("Eraser"); });
-    toolbar->addAction("Fill", [this] { DrawingManager::getInstance().setCurrentTool("Fill"); });
-    toolbar->addAction("Select", [this] { DrawingManager::getInstance().setCurrentTool("Select"); });
+    // Create a button group to manage tool selection
+    QButtonGroup* toolGroup = new QButtonGroup(this);
+    toolGroup->setExclusive(true);
 
-    // Add color selection button
-    QToolButton* colorButton = new QToolButton;
-    colorButton->setText("Color");
-	colorButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    // REORDERED: Create tool buttons with Select first
+    // Select Tool (now first)
+    QToolButton* selectButton = new QToolButton();
+    selectButton->setIcon(DrawingManager::getInstance().getToolByName("Select")->toolIcon());
+    selectButton->setToolTip("Select");
+    selectButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    selectButton->setCheckable(true);
+    selectButton->setFixedSize(38, 38); // Fixed size to fit toolbar
 
-    colorButton->setIcon(createColorIcon(DrawingManager::getInstance().getColor()));
-    colorButton->setIconSize(QSize(24, 24));
-    connect(colorButton, &QToolButton::clicked, this, &MainWindow::selectColor);
-    toolbar->addWidget(colorButton);
-    m_colorButton = colorButton;
+    // Brush Tool
+    QToolButton* brushButton = new QToolButton();
+    brushButton->setIcon(DrawingManager::getInstance().getToolByName("Brush")->toolIcon());
+    brushButton->setToolTip("Brush");
+    brushButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    brushButton->setCheckable(true);
+    brushButton->setChecked(true); // Default selected tool
+    brushButton->setFixedSize(38, 38); // Fixed size to fit toolbar
 
-    // Add brush size control
+    // Eraser Tool
+    QToolButton* eraserButton = new QToolButton();
+    eraserButton->setIcon(DrawingManager::getInstance().getToolByName("Eraser")->toolIcon());
+    eraserButton->setToolTip("Eraser");
+    eraserButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    eraserButton->setCheckable(true);
+    eraserButton->setFixedSize(38, 38); // Fixed size to fit toolbar
+
+    // Fill Tool
+    QToolButton* fillButton = new QToolButton();
+    fillButton->setIcon(DrawingManager::getInstance().getToolByName("Fill")->toolIcon());
+    fillButton->setToolTip("Fill");
+    fillButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    fillButton->setCheckable(true);
+    fillButton->setFixedSize(38, 38); // Fixed size to fit toolbar
+
+    // Add buttons to button group for exclusive selection
+    toolGroup->addButton(selectButton);
+    toolGroup->addButton(brushButton);
+    toolGroup->addButton(eraserButton);
+    toolGroup->addButton(fillButton);
+
+    // Add buttons to toolbar in new order
+    toolbar->addWidget(selectButton);
+    toolbar->addWidget(brushButton);
+    toolbar->addWidget(eraserButton);
+    toolbar->addWidget(fillButton);
+
+    // Connect button signals to tool selection
+    connect(selectButton, &QToolButton::clicked, this, [this]() {
+        DrawingManager::getInstance().setCurrentTool("Select");
+        });
+
+    connect(brushButton, &QToolButton::clicked, this, [this]() {
+        DrawingManager::getInstance().setCurrentTool("Brush");
+        });
+
+    connect(eraserButton, &QToolButton::clicked, this, [this]() {
+        DrawingManager::getInstance().setCurrentTool("Eraser");
+        });
+
+    connect(fillButton, &QToolButton::clicked, this, [this]() {
+        DrawingManager::getInstance().setCurrentTool("Fill");
+        });
+
     toolbar->addSeparator();
-    toolbar->addWidget(new QLabel("Size:"));
-    QSpinBox* sizeSpinBox = new QSpinBox;
-    sizeSpinBox->setRange(1, 100);
-    sizeSpinBox->setValue(15); // Default brush width
-    sizeSpinBox->setSingleStep(1);
-    m_brushSizeSpinBox = sizeSpinBox;
-    connect(sizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+
+    // Add color selection button (icon only)
+    m_colorButton = new QToolButton();
+    m_colorButton->setIcon(createColorIcon(DrawingManager::getInstance().getColor()));
+    m_colorButton->setToolTip("Color");
+    m_colorButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_colorButton->setFixedSize(38, 38); // Fixed size to fit toolbar
+    connect(m_colorButton, &QToolButton::clicked, this, &MainWindow::selectColor);
+    toolbar->addWidget(m_colorButton);
+
+    // Add brush size control - compact version
+    toolbar->addSeparator();
+
+    m_brushSizeSpinBox = new QSpinBox();
+    m_brushSizeSpinBox->setRange(1, 100);
+    m_brushSizeSpinBox->setValue(15); // Default brush width
+    m_brushSizeSpinBox->setSingleStep(1);
+    m_brushSizeSpinBox->setFixedWidth(40); // Adjust width to fit
+    m_brushSizeSpinBox->setButtonSymbols(QAbstractSpinBox::UpDownArrows);
+    m_brushSizeSpinBox->setAlignment(Qt::AlignCenter);
+    m_brushSizeSpinBox->setToolTip("Brush Size");
+
+    connect(m_brushSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
         this, &MainWindow::setBrushSize);
-    toolbar->addWidget(sizeSpinBox);
+    toolbar->addWidget(m_brushSizeSpinBox);
 
-    // Adjust toolbar font size
-    QFont font = toolbar->font();
-    font.setPointSize(12);
-    toolbar->setFont(font);
-
-    // Apply existing CSS styles
+    // Apply existing CSS styles with modifications for a compact toolbar
     toolbar->setStyleSheet(R"( 
 /* ───── Toolbar elegant ───── */
 QToolBar {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                 stop:0 #2e2e2e, stop:1 #262626);
     border: 1px solid #444;
-    border-radius: 10px;
-    padding: 12px 16px;
-    spacing: 14px;
+    border-radius: 4px;
+    padding: 4px 2px; /* Less horizontal padding */
+    spacing: 1px; /* Reduced spacing */
 }
 
-/* ───── Butoane cu iconiță și text dedesubt ───── */
+/* ───── Butoane cu iconiță ───── */
 QToolButton {
-    qproperty-toolButtonStyle: Qt::ToolButtonTextUnderIcon;
-    qproperty-iconSize: 36px;
-
     background: #2f2f2f;
     border: 1px solid #3c3c3c;
-    border-radius: 10px;
-    margin: 6px;
-    min-width: 80px;
-    min-height: 90px;
-
-    color: #dddddd;  /* Text vizibil implicit */
-    font-size: 14px;
-    font-weight: bold;
+    border-radius: 4px;
+    margin: 1px; /* Smaller margins */
+    padding: 2px; /* Less padding */
+    max-width: 38px;
+    max-height: 38px;
 }
 
 /* ───── Hover ───── */
 QToolButton:hover {
     background: #3d3d3d;
     border: 1px solid #666;
-    color: #ffffff;
 }
 
 /* ───── Apăsat momentan ───── */
@@ -171,33 +228,56 @@ QToolButton:pressed {
 /* ───── Apăsat permanent (checked) ───── */
 QToolButton:checked {
     background: #5c8aff;     /* Albastru elegant */
-    border: 2px solid #aaccff;
-    color: #ffffff;
+    border: 1px solid #aaccff; /* Thinner border */
 }
 
-/* ───── Alte controale ───── */
-QPushButton#colorSelector {
-    background: #444;
+/* ───── SpinBox Styling ───── */
+QSpinBox {
+    background: #2f2f2f;
     color: #fff;
-    border: 2px solid #777;
-    border-radius: 8px;
-    padding: 8px 16px;
-    min-width: 100px;
-    font-weight: bold;
-    font-size: 13px;
+    border: 1px solid #3c3c3c;
+    border-radius: 4px;
+    min-height: 20px; /* Smaller height */
+    max-width: 40px;
+    font-size: 10px; /* Smaller font */
 }
 
-QPushButton#colorSelector:hover {
-    background: #666;
-    border-color: #aaa;
+QSpinBox::up-button, QSpinBox::down-button {
+    subcontrol-origin: border;
+    width: 12px; /* Smaller width */
+    border: 1px solid #3c3c3c;
 }
 
-QPushButton#colorSelector:pressed {
-    background: #333;
-    border-color: #999;
+QSpinBox::up-button {
+    subcontrol-position: top right;
+    border-top-right-radius: 3px;
 }
 
+QSpinBox::down-button {
+    subcontrol-position: bottom right;
+    border-bottom-right-radius: 3px;
+}
+
+QToolBar::separator {
+    background: #555;
+    width: 1px;
+    height: 1px;
+    margin: 4px 2px; /* Smaller margins */
+}
+
+/* Make tooltips nicer */
+QToolTip {
+    background: #2a2a2a;
+    color: #ffffff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 11px;
+}
 )");
+
+    // Configure tooltip appearance
+    QToolTip::setFont(QFont("Sans Serif", 9));
 
     statusBar();
     connect(m_view, &ManipulatableGraphicsView::keyPressedInView,
@@ -339,15 +419,27 @@ void MainWindow::setupUndoRedo() {
     addDockWidget(Qt::RightDockWidgetArea, undoDock);
 }
 
-// Create a colored icon for the color button
+// Update color icon to smaller size
 QIcon MainWindow::createColorIcon(const QColor& color) {
-    QPixmap pixmap(24, 24);
-    pixmap.fill(color);
+    QPixmap pixmap(24, 24); // Smaller size (was 36x36)
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    // Draw color swatch with border
+    QRect colorRect(2, 2, 20, 20);
+    painter.setPen(QPen(Qt::gray, 1));
+    painter.setBrush(color);
+    painter.drawRoundedRect(colorRect, 4, 4);
+
     return QIcon(pixmap);
 }
 
 void MainWindow::selectColor() {
-    QColor color = QColorDialog::getColor(DrawingManager::getInstance().getColor(), this, "Select Color");
+    QColor current = DrawingManager::getInstance().getColor();
+    QColor color = QColorDialog::getColor(current, this, "Select Color",
+        QColorDialog::ShowAlphaChannel);
     if (color.isValid()) {
         DrawingManager::getInstance().setColor(color);
         m_colorButton->setIcon(createColorIcon(color));

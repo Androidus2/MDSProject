@@ -17,7 +17,7 @@ public:
 	void keyReleaseEvent(QKeyEvent* event) override;
 
 	QString toolName() const override { return "Eraser"; }
-	QIcon toolIcon() const override { return QIcon(":/icons/eraser.png"); }
+	QIcon toolIcon() const override { return QIcon("icons/eraser.png"); }
 
 private slots:
 	void commitEraserSegment();
