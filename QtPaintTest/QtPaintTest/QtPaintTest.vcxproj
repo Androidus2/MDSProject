@@ -109,6 +109,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AddCommand.cpp" />
+    <ClCompile Include="BaseItem.cpp" />
     <ClCompile Include="BaseTool.cpp" />
     <ClCompile Include="BrushTool.cpp" />
     <ClCompile Include="DrawingEngineUtils.cpp" />
@@ -121,6 +122,7 @@
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="ManipulatableGraphicsView.cpp" />
     <ClCompile Include="MoveCommand.cpp" />
+    <ClCompile Include="RasterItem.cpp" />
     <ClCompile Include="RemoveCommand.cpp" />
     <ClCompile Include="SelectTool.cpp" />
     <ClCompile Include="StrokeItem.cpp" />
@@ -149,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AddCommand.h" />
+    <ClInclude Include="BaseItem.h" />
     <ClInclude Include="BaseTool.h" />
     <ClInclude Include="BrushTool.h" />
     <ClInclude Include="ClipboardItem.h" />
@@ -163,6 +166,7 @@
     <QtMoc Include="ManipulatableGraphicsView.h" />
     <ClInclude Include="FillTool.h" />
     <ClInclude Include="MoveCommand.h" />
+    <ClInclude Include="RasterItem.h" />
     <ClInclude Include="RemoveCommand.h" />
     <ClInclude Include="SelectTool.h" />
     <ClInclude Include="StrokeItem.h" />

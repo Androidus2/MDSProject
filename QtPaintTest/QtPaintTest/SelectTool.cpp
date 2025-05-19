@@ -83,7 +83,7 @@ void SelectTool::keyPressEvent(QKeyEvent* event) {
                 key == Qt::Key_Up || key == Qt::Key_Down);
 
             if (isArrowKey && m_startPositions.isEmpty()) {
-                for (StrokeItem* selectedItem : m_selectedItems) {
+                for (BaseItem* selectedItem : m_selectedItems) {
                     m_startPositions[selectedItem] = selectedItem->pos();
                 }
             }
@@ -135,7 +135,7 @@ void SelectTool::keyPressEvent(QKeyEvent* event) {
 
         if (dx != 0 || dy != 0) {
             // Apply the movement
-            for (StrokeItem* item : m_selectedItems) {
+            for (BaseItem* item : m_selectedItems) {
                 item->moveBy(dx, dy);
             }
 
@@ -146,12 +146,12 @@ void SelectTool::keyPressEvent(QKeyEvent* event) {
 
         // Handle delete key for selected items
         if (key == Qt::Key_Delete) {
-            QList<StrokeItem*> itemsToRemove = m_selectedItems;
+            QList<BaseItem*> itemsToRemove = m_selectedItems;
             /*for (StrokeItem* item : m_selectedItems) {
                 DrawingManager::getInstance().getScene()->removeItem(item);
                 delete item;
             }*/
-            for (StrokeItem* item : itemsToRemove) {
+            for (BaseItem* item : itemsToRemove) {
                 RemoveCommand* cmd = new RemoveCommand(DrawingManager::getInstance().getScene(), item);
                 DrawingManager::getInstance().pushCommand(cmd);
             }
@@ -185,12 +185,12 @@ void SelectTool::keyReleaseEvent(QKeyEvent* event) {
 
             if (!anyArrowStillPressed) {
                 // Create move command for the keyboard movement
-                QList<StrokeItem*> movedItems;
+                QList<BaseItem*> movedItems;
                 QPointF totalDelta;
 
                 // Calculate the average delta from start positions
                 int itemCount = 0;
-                for (StrokeItem* item : m_selectedItems) {
+                for (BaseItem* item : m_selectedItems) {
                     if (m_startPositions.contains(item)) {
                         QPointF startPos = m_startPositions[item];
                         QPointF endPos = item->pos();
@@ -211,7 +211,7 @@ void SelectTool::keyReleaseEvent(QKeyEvent* event) {
                     MoveCommand* cmd = new MoveCommand(DrawingManager::getInstance().getScene(), movedItems, totalDelta);
 
                     // Move items back to start positions first
-                    for (StrokeItem* item : movedItems) {
+                    for (BaseItem* item : movedItems) {
                         item->setPos(m_startPositions[item]);
                     }
 
@@ -270,7 +270,7 @@ void SelectTool::startSelection(const QPointF& pos) {
     bool clickedOnSelected = false;
 
     for (QGraphicsItem* item : itemsAtPos) {
-        if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
+        if (auto stroke = dynamic_cast<BaseItem*>(item)) {
             // Skip items that are part of onion skin groups
             if (stroke->parentItem()) {
                 continue;
@@ -285,7 +285,7 @@ void SelectTool::startSelection(const QPointF& pos) {
 
                 // Store starting positions of all selected items
                 m_startPositions.clear();
-                for (StrokeItem* selectedItem : m_selectedItems) {
+                for (BaseItem* selectedItem : m_selectedItems) {
                     m_startPositions[selectedItem] = selectedItem->pos();
                 }
                 break;
@@ -312,7 +312,7 @@ void SelectTool::startSelection(const QPointF& pos) {
 
                 // Store starting positions of all selected items
                 m_startPositions.clear();
-                for (StrokeItem* selectedItem : m_selectedItems) {
+                for (BaseItem* selectedItem : m_selectedItems) {
                     m_startPositions[selectedItem] = selectedItem->pos();
                 }
                 return;
@@ -356,7 +356,7 @@ void SelectTool::updateSelection(const QPointF& pos) {
         QPointF delta = pos - m_lastMousePos;
         if (!m_selectedItems.isEmpty() && delta.manhattanLength() > 0.01) {
             // Just update the visual positions during dragging - no commands yet
-            for (StrokeItem* item : m_selectedItems) {
+            for (BaseItem* item : m_selectedItems) {
                 if (item->scene() == DrawingManager::getInstance().getScene()) {
                     item->moveBy(delta.x(), delta.y());
                 }
@@ -398,12 +398,12 @@ void SelectTool::finalizeSelection() {
         // Create a final move command for the entire movement
         if (!m_selectedItems.isEmpty() && !m_startPositions.isEmpty()) {
             // Calculate final move delta for each item
-            QList<StrokeItem*> movedItems;
+            QList<BaseItem*> movedItems;
             QPointF totalDelta;
 
             // Calculate the average delta of all moved items
             int itemCount = 0;
-            for (StrokeItem* item : m_selectedItems) {
+            for (BaseItem* item : m_selectedItems) {
                 if (m_startPositions.contains(item)) {
                     QPointF startPos = m_startPositions[item];
                     QPointF endPos = item->pos();
@@ -424,7 +424,7 @@ void SelectTool::finalizeSelection() {
                 MoveCommand* cmd = new MoveCommand(DrawingManager::getInstance().getScene(), movedItems, totalDelta);
 
                 // Important: Move items back to start positions first
-                for (StrokeItem* item : movedItems) {
+                for (BaseItem* item : movedItems) {
                     item->setPos(m_startPositions[item]);
                 }
 
@@ -463,7 +463,7 @@ void SelectTool::clearSelection() {
     removeSelectionBox();
 }
 void SelectTool::highlightSelectedItems(bool highlight) {
-    for (StrokeItem* item : m_selectedItems) {
+    for (BaseItem* item : m_selectedItems) {
         if (highlight) {
             item->setSelected(true);
             item->setZValue(item->zValue() + 0.1);

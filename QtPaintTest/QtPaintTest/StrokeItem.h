@@ -2,9 +2,10 @@
 #include <QtWidgets>
 #include <clipper2/clipper.h>
 #include "DrawingEngineUtils.h"
+#include "BaseItem.h"
 
 
-class StrokeItem : public QGraphicsPathItem {
+class StrokeItem : public BaseItem {
 public:
 	StrokeItem(const QColor& color, qreal width);
 	StrokeItem(const QColor& fillColor);
@@ -14,10 +15,9 @@ public:
 	QColor color() const;
 	qreal width() const;
 	bool isOutlined() const;
-	void setSelected(bool selected);
-	bool isSelected() const { return m_isSelected; }
+	void setSelected(bool selected) override;
 
-	StrokeItem* clone() const;
+	StrokeItem* clone() const override;
 
 protected:
 	void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
@@ -26,6 +26,5 @@ private:
 	QColor m_color;
 	qreal m_width;
 	bool m_isOutlined;
-	bool m_isSelected = false;
 	QPen m_originalPen;
 };

@@ -38,9 +38,9 @@ public:
     void clearSelection();
 
 	// Make a function to return the selected items
-	QList<StrokeItem*> getSelectedItems() const { return m_selectedItems; }
+	QList<BaseItem*> getSelectedItems() const { return m_selectedItems; }
 
-	void setSelectedItems(const QList<StrokeItem*>& items) {
+	void setSelectedItems(const QList<BaseItem*>& items) {
 		m_selectedItems = items;
 		highlightSelectedItems(true);
 
@@ -71,7 +71,7 @@ private:
     void applyTransformToItems();
 
     // Selection and movement variables
-    QList<StrokeItem*> m_selectedItems;
+    QList<BaseItem*> m_selectedItems;
     QGraphicsRectItem* m_selectionRect = nullptr;
     QPointF m_selectionStartPos;
     bool m_isSelecting = false;
@@ -100,9 +100,9 @@ private:
             QTransform transform;
             QPainterPath originalPath;
         };
-        QMap<StrokeItem*, ItemState> itemStates;
+        QMap<BaseItem*, ItemState> itemStates;
     } m_transform;
 
     // For undo stack
-    QMap<StrokeItem*, QPointF> m_startPositions;
+    QMap<BaseItem*, QPointF> m_startPositions;
 };

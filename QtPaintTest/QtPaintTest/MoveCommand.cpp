@@ -2,7 +2,7 @@
 
 // MoveCommand Implementation
 MoveCommand::MoveCommand(DrawingScene* scene,
-    const QList<StrokeItem*>& items,
+    const QList<BaseItem*>& items,
     const QPointF& moveDelta,
     QUndoCommand* parent)
     : QUndoCommand(parent), myScene(scene), movedItems(items), delta(moveDelta)
@@ -18,7 +18,7 @@ MoveCommand::~MoveCommand() {
 
 void MoveCommand::redo() {
     if (!myScene) return;
-    for (StrokeItem* item : movedItems) {
+    for (BaseItem* item : movedItems) {
         if (item->scene() == myScene) {
             item->moveBy(delta.x(), delta.y());
         }
@@ -27,7 +27,7 @@ void MoveCommand::redo() {
 
 void MoveCommand::undo() {
     if (!myScene) return;
-    for (StrokeItem* item : movedItems) {
+    for (BaseItem* item : movedItems) {
         if (item->scene() == myScene) {
             item->moveBy(-delta.x(), -delta.y());
         }
@@ -42,8 +42,8 @@ bool MoveCommand::mergeWith(const QUndoCommand* other) {
     // Ensure we're merging with the last command on the stack
     if (otherMove->movedItems.size() != this->movedItems.size()) return false;
 
-    QSet<StrokeItem*> mySet(movedItems.begin(), movedItems.end());
-    QSet<StrokeItem*> otherSet(otherMove->movedItems.begin(), otherMove->movedItems.end());
+    QSet<BaseItem*> mySet(movedItems.begin(), movedItems.end());
+    QSet<BaseItem*> otherSet(otherMove->movedItems.begin(), otherMove->movedItems.end());
     if (mySet != otherSet) return false;
 
     // Only merge if commands were created within 300ms of each other

@@ -49,9 +49,10 @@ void DrawingManager::copySelection() {
 	if (m_currentTool->toolName() != "Select") return;
     m_clipboard.clear();
 
-	QList<StrokeItem*> selectedItems = static_cast<SelectTool*>(m_currentTool)->getSelectedItems();
+	QList<BaseItem*> selectedItems = static_cast<SelectTool*>(m_currentTool)->getSelectedItems();
 
-    for (StrokeItem* item : selectedItems) {
+    for (BaseItem* baseItem : selectedItems) {
+		StrokeItem* item = static_cast<StrokeItem*>(baseItem);
         if (!item->isOutlined()) {
             item->convertToFilledPath();
         }
@@ -65,9 +66,9 @@ void DrawingManager::cutSelection() {
     copySelection();
 
     // We need to create a copy of the selected items since RemoveCommand will modify the scene
-	QList<StrokeItem*> itemsToRemove = static_cast<SelectTool*>(m_currentTool)->getSelectedItems();
+	QList<BaseItem*> itemsToRemove = static_cast<SelectTool*>(m_currentTool)->getSelectedItems();
 
-    for (StrokeItem* item : itemsToRemove) {
+    for (BaseItem* item : itemsToRemove) {
         RemoveCommand* cmd = new RemoveCommand(m_scene, item);
         pushCommand(cmd);
     }
@@ -99,7 +100,7 @@ void DrawingManager::pasteClipboard() {
     QPointF clipboardCenter = clipboardBounds.center();
     QPointF offsetToApply = m_lastSceneMousePos - clipboardCenter;
 
-    QList<StrokeItem*> pastedItems;
+    QList<BaseItem*> pastedItems;
 
     for (const auto& ci : m_clipboard) {
         StrokeItem* item = new StrokeItem(ci.color, ci.width);

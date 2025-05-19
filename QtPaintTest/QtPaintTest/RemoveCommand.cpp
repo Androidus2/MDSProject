@@ -1,7 +1,7 @@
 #include "RemoveCommand.h"
 
 // RemoveCommand Implementation
-RemoveCommand::RemoveCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent) : QUndoCommand(parent), myScene(scene), myItem(item)
+RemoveCommand::RemoveCommand(DrawingScene* scene, BaseItem* item, QUndoCommand* parent) : QUndoCommand(parent), myScene(scene), myItem(item)
 {
     setText(QString("Remove Shape %1").arg(QString::number(reinterpret_cast<uintptr_t>(item), 16)));
 }
