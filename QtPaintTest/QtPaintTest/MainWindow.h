@@ -21,6 +21,7 @@ private slots:
     void advanceFrame();
     void toggleOnionSkin(bool enabled);
     void setOnionSkinOpacity(int opacity);
+    void importImage();
 
 private:
     void setupUI();

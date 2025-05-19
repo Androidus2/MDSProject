@@ -29,7 +29,7 @@ StrokeItem::StrokeItem(const QColor& fillColor)
 
 StrokeItem::StrokeItem(const StrokeItem& other)
 	: m_color(other.m_color), m_width(other.m_width),
-	m_isOutlined(other.m_isOutlined), m_isSelected(other.m_isSelected),
+	m_isOutlined(other.m_isOutlined),
 	m_originalPen(other.m_originalPen)
 {
 	setPen(m_originalPen);

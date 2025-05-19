@@ -45,6 +45,12 @@
     <Filter Include="Source Files\Commands">
       <UniqueIdentifier>{5a21aa76-e75b-4d59-b535-eed89e5abad0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\DrawingEngine\Items">
+      <UniqueIdentifier>{cf25634d-1886-4e09-ae32-ba28c252ba9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DrawingEngine\Items">
+      <UniqueIdentifier>{943405df-01d7-44f7-a638-3ae09cc768ac}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="QtPaintTest.qrc">
@@ -78,9 +84,6 @@
     </ClCompile>
     <ClCompile Include="Utils\clipper.svg.cpp">
       <Filter>ClipperUtils</Filter>
-    </ClCompile>
-    <ClCompile Include="StrokeItem.cpp">
-      <Filter>Source Files\DrawingEngine</Filter>
     </ClCompile>
     <ClCompile Include="DrawingScene.cpp">
       <Filter>Source Files\DrawingEngine</Filter>
@@ -133,6 +136,15 @@
     <ClCompile Include="RemoveCommand.cpp">
       <Filter>Source Files\Commands</Filter>
     </ClCompile>
+    <ClCompile Include="BaseItem.cpp">
+      <Filter>Source Files\DrawingEngine\Items</Filter>
+    </ClCompile>
+    <ClCompile Include="StrokeItem.cpp">
+      <Filter>Source Files\DrawingEngine\Items</Filter>
+    </ClCompile>
+    <ClCompile Include="RasterItem.cpp">
+      <Filter>Source Files\DrawingEngine\Items</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\ClipFileLoad.h">
@@ -155,9 +167,6 @@
     </ClInclude>
     <ClInclude Include="Utils\Timer.h">
       <Filter>ClipperUtils</Filter>
-    </ClInclude>
-    <ClInclude Include="StrokeItem.h">
-      <Filter>Header Files\DrawingEngine</Filter>
     </ClInclude>
     <ClInclude Include="DrawingEngineUtils.h">
       <Filter>Header Files\DrawingEngine</Filter>
@@ -194,6 +203,15 @@
     </ClInclude>
     <ClInclude Include="MoveCommand.h">
       <Filter>Header Files\Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseItem.h">
+      <Filter>Header Files\DrawingEngine\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="StrokeItem.h">
+      <Filter>Header Files\DrawingEngine\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="RasterItem.h">
+      <Filter>Header Files\DrawingEngine\Items</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

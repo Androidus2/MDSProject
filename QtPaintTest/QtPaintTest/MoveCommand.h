@@ -7,7 +7,7 @@
 class MoveCommand : public QUndoCommand {
 public:
     MoveCommand(DrawingScene* scene,
-        const QList<StrokeItem*>& items,
+        const QList<BaseItem*>& items,
         const QPointF& moveDelta,
         QUndoCommand* parent = nullptr);
     ~MoveCommand();
@@ -22,6 +22,6 @@ public:
 private:
     QTime timestamp;
     DrawingScene* myScene;
-    QList<StrokeItem*> movedItems;
+    QList<BaseItem*> movedItems;
     QPointF delta;
 };

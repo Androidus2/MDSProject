@@ -5,11 +5,11 @@
 
 class RemoveCommand : public QUndoCommand {
 public:
-    RemoveCommand(DrawingScene* scene, StrokeItem* item, QUndoCommand* parent = nullptr);
+    RemoveCommand(DrawingScene* scene, BaseItem* item, QUndoCommand* parent = nullptr);
     ~RemoveCommand();
     void undo() override;
     void redo() override;
 private:
     DrawingScene* myScene;
-    StrokeItem* myItem;
+    BaseItem* myItem;
 };

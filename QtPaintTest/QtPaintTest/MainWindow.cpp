@@ -318,6 +318,11 @@ void MainWindow::setupMenus() {
         FileIOOperations::saveDrawingAs(*m_frames[m_currentFrame], *this);
         });
 
+    // Add Import Image action
+    QAction* importImageAction = fileMenu->addAction("&Import Image...");
+    importImageAction->setShortcut(QKeySequence("Ctrl+I"));
+    connect(importImageAction, &QAction::triggered, this, &MainWindow::importImage);
+
     fileMenu->addSeparator();
 
     // Export submenu
@@ -577,6 +582,33 @@ void MainWindow::setOnionSkinOpacity(int opacity) {
     if (m_onionSkinEnabled) {
         updateOnionSkin();
     }
+}
+
+void MainWindow::importImage() {
+    // Create file dialog for selecting images
+    QString fileName = QFileDialog::getOpenFileName(this,
+        tr("Import Image"),
+        QString(),
+        tr("Image Files (*.png *.jpg *.jpeg)"));
+
+    if (fileName.isEmpty())
+        return;
+
+    // Create a RasterItem with the selected image
+    RasterItem* imageItem = new RasterItem(fileName);
+
+    // Add the RasterItem to the current scene
+    m_frames[m_currentFrame]->addItem(imageItem);
+
+    // Center the image in the view
+    QRectF itemRect = imageItem->boundingRect();
+    imageItem->setPos(-itemRect.width() / 2, -itemRect.height() / 2);
+
+    // Create an undo command if needed
+    // For now, we'll just add the item directly
+
+    // Update the scene
+    m_frames[m_currentFrame]->update();
 }
 
 void MainWindow::updateOnionSkin() {

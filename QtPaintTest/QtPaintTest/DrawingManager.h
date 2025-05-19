@@ -4,6 +4,7 @@
 #include "DrawingEngineUtils.h"
 #include "DrawingScene.h"
 #include "ClipboardItem.h"
+#include "RasterItem.h"
 
 #include <fstream>
 
