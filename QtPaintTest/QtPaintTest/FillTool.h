@@ -13,7 +13,7 @@ public:
 	void keyPressEvent(QKeyEvent* event) override;
 	void keyReleaseEvent(QKeyEvent* event) override;
 	QString toolName() const override { return "Fill"; }
-	QIcon toolIcon() const override { return QIcon(":/icons/fill.png"); }
+	QIcon toolIcon() const override { return QIcon("icons/bucket.png"); }
 
 private:
 	void applyFill(const QPointF& pos);

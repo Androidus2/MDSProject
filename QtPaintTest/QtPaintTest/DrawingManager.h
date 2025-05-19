@@ -55,6 +55,15 @@ public:
 		return m_currentTool;
 	}
 
+	BaseTool* getToolByName(const QString& toolName) {
+		for (BaseTool* tool : m_tools) {
+			if (tool->toolName() == toolName) {
+				return tool;
+			}
+		}
+		return nullptr;
+	}
+
 	void setWidth(qreal width) {
 		m_width = width;
 	}

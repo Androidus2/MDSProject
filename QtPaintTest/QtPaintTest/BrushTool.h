@@ -17,7 +17,7 @@ public:
 	void keyReleaseEvent(QKeyEvent* event) override;
 
 	QString toolName() const override { return "Brush"; }
-	QIcon toolIcon() const override { return QIcon(":/icons/brush.png"); }
+	QIcon toolIcon() const override { return QIcon("icons/brush.png"); }
 
 private slots:
 	void commitBrushSegment();
