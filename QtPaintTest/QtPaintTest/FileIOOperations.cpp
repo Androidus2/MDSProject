@@ -51,6 +51,10 @@ void FileIOOperations::saveDrawingAs(QGraphicsScene& scene, MainWindow& window) 
     }
 }
 bool FileIOOperations::maybeSave(QGraphicsScene& scene, MainWindow& window) {
+    if (!DrawingManager::getInstance().hasModifications()) {
+        return true;
+    }
+
     QMessageBox::StandardButton response = QMessageBox::question(
         &window, "Save Changes", "Do you want to save your changes?",
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel
