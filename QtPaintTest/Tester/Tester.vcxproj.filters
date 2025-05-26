@@ -21,10 +21,200 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
+    <Filter Include="Clipper">
+      <UniqueIdentifier>{ad333a8b-4ec1-4883-8a12-61987e5630fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Clipper\ClipperSRC">
+      <UniqueIdentifier>{046e740f-950a-446f-9ee8-6e92868bf7c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Clipper\ClipperUtils">
+      <UniqueIdentifier>{9e7e696b-6291-44a0-98e1-3b8deb7c9c68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\OriginalHeaders">
+      <UniqueIdentifier>{2d78af04-89c2-49b4-a605-977d764d2057}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OriginalSources">
+      <UniqueIdentifier>{8049ab88-13a8-474a-919d-1a641df3cdbf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="Tester.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tester.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tst_StrokeItem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Clipper2Lib\src\clipper.engine.cpp">
+      <Filter>Clipper\ClipperSRC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Clipper2Lib\src\clipper.offset.cpp">
+      <Filter>Clipper\ClipperSRC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Clipper2Lib\src\clipper.rectclip.cpp">
+      <Filter>Clipper\ClipperSRC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Utils\ClipFileLoad.cpp">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Utils\ClipFileSave.cpp">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Utils\clipper.svg.cpp">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\AddCommand.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\BaseItem.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\BaseTool.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\BrushTool.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\DrawingEngineUtils.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\DrawingManager.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\DrawingScene.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\EraseCommand.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\EraserTool.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\FileIOOperations.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\FillTool.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\MainWindow.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\ManipulatableGraphicsView.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\MoveCommand.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\RasterItem.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\RemoveCommand.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\SelectTool.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\StrokeItem.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\TimelineWidget.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Tester.h">
+      <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="tst_StrokeItem.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\DrawingManager.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\DrawingScene.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\FrameItem.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\MainWindow.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\ManipulatableGraphicsView.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\TimelineWidget.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\QtPaintTest\Utils\ClipFileLoad.h">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\Utils\ClipFileSave.h">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\Utils\clipper.svg.h">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\Utils\clipper.svg.utils.h">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\Utils\Colors.h">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\Utils\CommonUtils.h">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\Utils\Timer.h">
+      <Filter>Clipper\ClipperUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\AddCommand.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\BaseItem.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\BaseTool.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\BrushTool.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\ClipboardItem.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\DrawingEngineUtils.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\EraseCommand.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\EraserTool.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\FileIOOperations.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\FillTool.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\MoveCommand.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\RasterItem.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\RemoveCommand.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\SelectTool.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\QtPaintTest\StrokeItem.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
