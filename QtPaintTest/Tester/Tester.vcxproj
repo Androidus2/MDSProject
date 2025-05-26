@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{87AD70F3-EE57-4D88-B450-298EAF0C2ADE}</ProjectGuid>
+    <ProjectGuid>{9E797B08-86D4-4F24-B41F-97A5E378B5A4}</ProjectGuid>
     <Keyword>QtVS_v304</Keyword>
     <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">10.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">10.0</WindowsTargetPlatformVersion>
@@ -37,12 +37,12 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
     <QtInstall>6.8.2_msvc2022_64</QtInstall>
-    <QtModules>core;gui;widgets;opengl;openglwidgets;svg;</QtModules>
+    <QtModules>core;testlib;gui;widgets;opengl;openglwidgets;svg;</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
     <QtInstall>6.8.2_msvc2022_64</QtInstall>
-    <QtModules>core;gui;widgets;opengl;openglwidgets;svg;opengl;openglwidgets</QtModules>
+    <QtModules>core;testlib</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -65,34 +65,26 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
-    <ClCompile>
+      <AdditionalIncludeDirectories>
+        $(SolutionDir)QtPaintTest\Clipper2Lib\include;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
     <ClCompile>
+      <AdditionalIncludeDirectories>
+        $(SolutionDir)QtPaintTest\Clipper2Lib\include;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -101,76 +93,89 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AddCommand.cpp" />
-    <ClCompile Include="BaseItem.cpp" />
-    <ClCompile Include="BaseTool.cpp" />
-    <ClCompile Include="BrushTool.cpp" />
-    <ClCompile Include="DrawingEngineUtils.cpp" />
-    <ClCompile Include="DrawingManager.cpp" />
-    <ClCompile Include="DrawingScene.cpp" />
-    <ClCompile Include="EraseCommand.cpp" />
-    <ClCompile Include="EraserTool.cpp" />
-    <ClCompile Include="FileIOOperations.cpp" />
-    <ClCompile Include="FillTool.cpp" />
-    <ClCompile Include="MainWindow.cpp" />
-    <ClCompile Include="ManipulatableGraphicsView.cpp" />
-    <ClCompile Include="MoveCommand.cpp" />
-    <ClCompile Include="RasterItem.cpp" />
-    <ClCompile Include="RemoveCommand.cpp" />
-    <ClCompile Include="SelectTool.cpp" />
-    <ClCompile Include="StrokeItem.cpp" />
-    <ClCompile Include="TimelineWidget.cpp" />
-    <ClCompile Include="Utils\ClipFileLoad.cpp" />
-    <ClCompile Include="Utils\ClipFileSave.cpp" />
-    <ClCompile Include="Utils\clipper.svg.cpp" />
-    <QtRcc Include="QtPaintTest.qrc" />
-    <QtUic Include="QtPaintTest.ui" />
-    <ClCompile Include="Clipper2Lib\src\clipper.engine.cpp" />
-    <ClCompile Include="Clipper2Lib\src\clipper.offset.cpp" />
-    <ClCompile Include="Clipper2Lib\src\clipper.rectclip.cpp" />
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="..\QtPaintTest\AddCommand.cpp" />
+    <ClCompile Include="..\QtPaintTest\BaseItem.cpp" />
+    <ClCompile Include="..\QtPaintTest\BaseTool.cpp" />
+    <ClCompile Include="..\QtPaintTest\BrushTool.cpp" />
+    <ClCompile Include="..\QtPaintTest\Clipper2Lib\src\clipper.engine.cpp" />
+    <ClCompile Include="..\QtPaintTest\Clipper2Lib\src\clipper.offset.cpp" />
+    <ClCompile Include="..\QtPaintTest\Clipper2Lib\src\clipper.rectclip.cpp" />
+    <ClCompile Include="..\QtPaintTest\DrawingEngineUtils.cpp" />
+    <ClCompile Include="..\QtPaintTest\DrawingManager.cpp" />
+    <ClCompile Include="..\QtPaintTest\DrawingScene.cpp" />
+    <ClCompile Include="..\QtPaintTest\EraseCommand.cpp" />
+    <ClCompile Include="..\QtPaintTest\EraserTool.cpp" />
+    <ClCompile Include="..\QtPaintTest\FileIOOperations.cpp" />
+    <ClCompile Include="..\QtPaintTest\FillTool.cpp" />
+    <ClCompile Include="..\QtPaintTest\MainWindow.cpp" />
+    <ClCompile Include="..\QtPaintTest\ManipulatableGraphicsView.cpp" />
+    <ClCompile Include="..\QtPaintTest\MoveCommand.cpp" />
+    <ClCompile Include="..\QtPaintTest\RasterItem.cpp" />
+    <ClCompile Include="..\QtPaintTest\RemoveCommand.cpp" />
+    <ClCompile Include="..\QtPaintTest\SelectTool.cpp" />
+    <ClCompile Include="..\QtPaintTest\StrokeItem.cpp" />
+    <ClCompile Include="..\QtPaintTest\TimelineWidget.cpp" />
+    <ClCompile Include="..\QtPaintTest\Utils\ClipFileLoad.cpp" />
+    <ClCompile Include="..\QtPaintTest\Utils\ClipFileSave.cpp" />
+    <ClCompile Include="..\QtPaintTest\Utils\clipper.svg.cpp" />
+    <ClCompile Include="Tester.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
     </ClCompile>
+    <ClCompile Include="tst_StrokeItem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AddCommand.h" />
-    <ClInclude Include="BaseItem.h" />
-    <ClInclude Include="BaseTool.h" />
-    <ClInclude Include="BrushTool.h" />
-    <ClInclude Include="ClipboardItem.h" />
-    <ClInclude Include="DrawingEngineUtils.h" />
-    <QtMoc Include="DrawingScene.h" />
-    <QtMoc Include="DrawingManager.h" />
-    <ClInclude Include="EraseCommand.h" />
-    <ClInclude Include="EraserTool.h" />
-    <ClInclude Include="FileIOOperations.h" />
-    <QtMoc Include="MainWindow.h" />
-    <QtMoc Include="FrameItem.h" />
-    <QtMoc Include="ManipulatableGraphicsView.h" />
-    <ClInclude Include="FillTool.h" />
-    <ClInclude Include="MoveCommand.h" />
-    <ClInclude Include="RasterItem.h" />
-    <ClInclude Include="RemoveCommand.h" />
-    <ClInclude Include="SelectTool.h" />
-    <ClInclude Include="StrokeItem.h" />
-    <QtMoc Include="TimelineWidget.h" />
-    <ClInclude Include="Utils\ClipFileLoad.h" />
-    <ClInclude Include="Utils\ClipFileSave.h" />
-    <ClInclude Include="Utils\clipper.svg.h" />
-    <ClInclude Include="Utils\clipper.svg.utils.h" />
-    <ClInclude Include="Utils\Colors.h" />
-    <ClInclude Include="Utils\CommonUtils.h" />
-    <ClInclude Include="Utils\Timer.h" />
+    <ProjectReference Include="..\QtPaintTest\QtPaintTest.vcxproj">
+      <Project>{87ad70f3-ee57-4d88-b450-298eaf0c2ade}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Tester.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="tst_StrokeItem.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\QtPaintTest\AddCommand.h" />
+    <ClInclude Include="..\QtPaintTest\BaseItem.h" />
+    <ClInclude Include="..\QtPaintTest\BaseTool.h" />
+    <ClInclude Include="..\QtPaintTest\BrushTool.h" />
+    <ClInclude Include="..\QtPaintTest\ClipboardItem.h" />
+    <ClInclude Include="..\QtPaintTest\DrawingEngineUtils.h" />
+    <ClInclude Include="..\QtPaintTest\EraseCommand.h" />
+    <ClInclude Include="..\QtPaintTest\EraserTool.h" />
+    <ClInclude Include="..\QtPaintTest\FileIOOperations.h" />
+    <ClInclude Include="..\QtPaintTest\FillTool.h" />
+    <ClInclude Include="..\QtPaintTest\MoveCommand.h" />
+    <ClInclude Include="..\QtPaintTest\RasterItem.h" />
+    <ClInclude Include="..\QtPaintTest\RemoveCommand.h" />
+    <ClInclude Include="..\QtPaintTest\SelectTool.h" />
+    <ClInclude Include="..\QtPaintTest\StrokeItem.h" />
+    <QtMoc Include="..\QtPaintTest\TimelineWidget.h" />
+    <QtMoc Include="..\QtPaintTest\ManipulatableGraphicsView.h" />
+    <QtMoc Include="..\QtPaintTest\MainWindow.h" />
+    <QtMoc Include="..\QtPaintTest\FrameItem.h" />
+    <QtMoc Include="..\QtPaintTest\DrawingScene.h" />
+    <QtMoc Include="..\QtPaintTest\DrawingManager.h" />
+    <ClInclude Include="..\QtPaintTest\Utils\ClipFileLoad.h" />
+    <ClInclude Include="..\QtPaintTest\Utils\ClipFileSave.h" />
+    <ClInclude Include="..\QtPaintTest\Utils\clipper.svg.h" />
+    <ClInclude Include="..\QtPaintTest\Utils\clipper.svg.utils.h" />
+    <ClInclude Include="..\QtPaintTest\Utils\Colors.h" />
+    <ClInclude Include="..\QtPaintTest\Utils\CommonUtils.h" />
+    <ClInclude Include="..\QtPaintTest\Utils\Timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

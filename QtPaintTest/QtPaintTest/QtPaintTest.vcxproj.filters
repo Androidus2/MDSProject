@@ -59,14 +59,8 @@
     <QtUic Include="QtPaintTest.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-    <QtMoc Include="QtPaintTest.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="QtPaintTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Clipper2Lib\src\clipper.engine.cpp">
       <Filter>ClipperSRC</Filter>
     </ClCompile>
