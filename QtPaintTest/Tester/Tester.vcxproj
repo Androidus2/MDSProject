@@ -65,10 +65,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>
-        $(SolutionDir)QtPaintTest\Clipper2Lib\include;
-        %(AdditionalIncludeDirectories)
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\alexa\Documents\Alex\Facultate\An2\Sem2\MDS\QtPaintTest\QtPaintTest;$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -81,10 +78,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
     <ClCompile>
-      <AdditionalIncludeDirectories>
-        $(SolutionDir)QtPaintTest\Clipper2Lib\include;
-        %(AdditionalIncludeDirectories)
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\alexa\Documents\Alex\Facultate\An2\Sem2\MDS\QtPaintTest\QtPaintTest;$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -99,6 +93,11 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\QtPaintTest\QtPaintTest.vcxproj">
+      <Project>{87ad70f3-ee57-4d88-b450-298eaf0c2ade}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\QtPaintTest\AddCommand.cpp" />
     <ClCompile Include="..\QtPaintTest\BaseItem.cpp" />
@@ -125,21 +124,9 @@
     <ClCompile Include="..\QtPaintTest\Utils\ClipFileLoad.cpp" />
     <ClCompile Include="..\QtPaintTest\Utils\ClipFileSave.cpp" />
     <ClCompile Include="..\QtPaintTest\Utils\clipper.svg.cpp" />
-    <ClCompile Include="Tester.cpp">
-      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
-      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
-      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
-      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
-    </ClCompile>
-    <ClCompile Include="tst_StrokeItem.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\QtPaintTest\QtPaintTest.vcxproj">
-      <Project>{87ad70f3-ee57-4d88-b450-298eaf0c2ade}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Tester.cpp" />
+    <ClCompile Include="tst_StrokeItem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Tester.h" />
