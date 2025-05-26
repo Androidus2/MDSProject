@@ -660,5 +660,19 @@ void MainWindow::addOnionSkinFrame(int frameIndex, float opacityMultiplier) {
             // Add to group for easy management
             group->addToGroup(newItem);
         }
+        else if (RasterItem* rasterItem = dynamic_cast<RasterItem*>(item)) {
+            // Handle raster items
+            RasterItem* newItem = static_cast<RasterItem*>(rasterItem->clone());
+
+            // Set opacity with multiplier for gradual fading
+            newItem->setOpacity((m_onionSkinOpacity / 100.0) * opacityMultiplier);
+
+            // Make it non-selectable and in background
+            newItem->setFlag(QGraphicsItem::ItemIsSelectable, false);
+            newItem->setZValue(-100 - (3 - opacityMultiplier * 3));
+
+            // Add to group for easy management
+            group->addToGroup(newItem);
+        }
     }
 }
