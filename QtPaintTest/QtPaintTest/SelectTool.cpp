@@ -803,9 +803,18 @@ void SelectTool::rotateSelection(qreal angle) {
         // Apply new position
         item->setPos(newPos);
 
-        // Apply rotation to the item's transform (if visual rotation is desired)
+        // Apply rotation to the item's transform
         QTransform itemTransform = state.transform;
-        itemTransform.rotate(angle);
+        
+        // For raster items, we need to rotate around the item's center
+        if (dynamic_cast<RasterItem*>(item)) {
+            // Apply rotation to transform matrix (this rotates around origin)
+            itemTransform.rotate(angle);
+        } else {
+            // Standard rotation for vector items
+            itemTransform.rotate(angle);
+        }
+        
         item->setTransform(itemTransform);
 
         // Update stored state
@@ -863,14 +872,37 @@ void SelectTool::applyTransformToItems() {
         // Get current transformation state
         const QPointF currentPos = item->pos();
         const QTransform currentTransform = item->transform();
-        // Apply to original path
-        QPainterPath newPath = currentTransform.map(m_transform.itemStates[item].originalPath);
-        newPath.translate(currentPos);
-
-        item->setPath(newPath);
-        item->setPos(0, 0);
-        item->setTransform(QTransform());
+        
+        // Handle RasterItem differently than vector items
+        if (RasterItem* rasterItem = dynamic_cast<RasterItem*>(item)) {
+            // For raster items, we need to reset the path to maintain proper dimensions
+            // This keeps rotation working correctly regardless of scaling
+            
+            // Get the original dimensions from the original path
+            QPainterPath originalPath = m_transform.itemStates[item].originalPath;
+            QRectF originalBounds = originalPath.boundingRect();
+            
+            // Create a new centered rectangle with original dimensions
+            QPainterPath newPath;
+            newPath.addRect(QRectF(
+                -originalBounds.width()/2, -originalBounds.height()/2,
+                originalBounds.width(), originalBounds.height()
+            ));
+            
+            // Set the path while preserving transformations
+            rasterItem->setPath(newPath);
+            
+            // Keep position and transform matrix intact
+        } 
+        else {
+            // For vector items, apply transform to the path (existing behavior)
+            QPainterPath newPath = currentTransform.map(m_transform.itemStates[item].originalPath);
+            newPath.translate(currentPos);
+            
+            item->setPath(newPath);
+            item->setPos(0, 0);
+            item->setTransform(QTransform());
+        }
     }
     createSelectionBox();
 }
-
