@@ -5,6 +5,7 @@
 #include "DrawingScene.h"
 #include "ClipboardItem.h"
 #include "RasterItem.h"
+#include "LayerManager.h"
 
 #include <fstream>
 
@@ -31,9 +32,29 @@ public:
 			}
 		}
 		m_scene = scene;
+		LayerManager::getInstance().setScene(scene);
 	}
 	DrawingScene* getScene() const {
 		return m_scene;
+	}
+
+	// Layer management methods
+	Layer* getCurrentLayer() const {
+		return LayerManager::getInstance().getCurrentLayer();
+	}
+
+	void setCurrentLayer(Layer* layer) {
+		LayerManager::getInstance().setCurrentLayer(layer);
+	}
+
+	void addItemToCurrentLayer(BaseItem* item) {
+		if (Layer* layer = getCurrentLayer()) {
+			layer->addItem(item);
+			if (m_scene) {
+				m_scene->addItem(item);
+				item->setZValue(layer->getZValue());
+			}
+		}
 	}
 
 	void setCurrentTool(QString toolName) {

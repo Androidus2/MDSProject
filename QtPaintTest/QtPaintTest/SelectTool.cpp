@@ -264,7 +264,7 @@ void SelectTool::updateSelectionUI() {
 
 void SelectTool::startSelection(const QPointF& pos) {
     // If clicking on a selected item, start moving
-    QList<QGraphicsItem*> itemsAtPos = DrawingManager::getInstance().getScene()-> items(pos);
+    QList<QGraphicsItem*> itemsAtPos = DrawingManager::getInstance().getScene()->items(pos);
 
     bool clickedOnAnyItem = false;
     bool clickedOnSelected = false;
@@ -273,6 +273,17 @@ void SelectTool::startSelection(const QPointF& pos) {
         if (auto stroke = dynamic_cast<BaseItem*>(item)) {
             // Skip items that are part of onion skin groups
             if (stroke->parentItem()) {
+                continue;
+            }
+
+            // Check if item is in a locked layer
+            bool isLocked = false;
+            if (Layer* layer = stroke->getLayer()) {
+                isLocked = layer->isLocked();
+            }
+
+            // Skip locked items
+            if (isLocked) {
                 continue;
             }
 
@@ -286,6 +297,12 @@ void SelectTool::startSelection(const QPointF& pos) {
                 // Store starting positions of all selected items
                 m_startPositions.clear();
                 for (BaseItem* selectedItem : m_selectedItems) {
+                    // Skip items in locked layers when storing positions
+                    if (Layer* layer = selectedItem->getLayer()) {
+                        if (layer->isLocked()) {
+                            continue;
+                        }
+                    }
                     m_startPositions[selectedItem] = selectedItem->pos();
                 }
                 break;
@@ -313,6 +330,12 @@ void SelectTool::startSelection(const QPointF& pos) {
                 // Store starting positions of all selected items
                 m_startPositions.clear();
                 for (BaseItem* selectedItem : m_selectedItems) {
+                    // Skip items in locked layers when storing positions
+                    if (Layer* layer = selectedItem->getLayer()) {
+                        if (layer->isLocked()) {
+                            continue;
+                        }
+                    }
                     m_startPositions[selectedItem] = selectedItem->pos();
                 }
                 return;
@@ -335,7 +358,7 @@ void SelectTool::startSelection(const QPointF& pos) {
             m_selectionRect = new QGraphicsRectItem();
             m_selectionRect->setPen(QPen(Qt::DashLine));
             m_selectionRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
-            DrawingManager::getInstance().getScene()-> addItem(m_selectionRect);
+            DrawingManager::getInstance().getScene()->addItem(m_selectionRect);
         }
 
         m_selectionRect->setRect(QRectF(pos, QSizeF(0, 0)));
@@ -371,12 +394,20 @@ void SelectTool::updateSelection(const QPointF& pos) {
 void SelectTool::finalizeSelection() {
     if (m_isSelecting && m_selectionRect) {
         // Items within selection rectangle
-        QList<QGraphicsItem*> itemsInRect = DrawingManager::getInstance().getScene()-> items(m_selectionRect->rect());
+        QList<QGraphicsItem*> itemsInRect = DrawingManager::getInstance().getScene()->items(m_selectionRect->rect());
 
         for (QGraphicsItem* item : itemsInRect) {
             if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
-                // Only select items that aren't part of onion skin groups
-                if (!stroke->parentItem() && !m_selectedItems.contains(stroke)) {
+                // Check if item is in a locked layer
+                bool isLocked = false;
+                if (auto baseItem = dynamic_cast<BaseItem*>(stroke)) {
+                    if (Layer* layer = baseItem->getLayer()) {
+                        isLocked = layer->isLocked();
+                    }
+                }
+
+                // Only select items that aren't part of onion skin groups and aren't in locked layers
+                if (!stroke->parentItem() && !m_selectedItems.contains(stroke) && !isLocked) {
                     m_selectedItems.append(stroke);
                 }
             }
@@ -404,7 +435,13 @@ void SelectTool::finalizeSelection() {
             // Calculate the average delta of all moved items
             int itemCount = 0;
             for (BaseItem* item : m_selectedItems) {
-                if (m_startPositions.contains(item)) {
+                // Skip items in locked layers
+                bool isLocked = false;
+                if (Layer* layer = item->getLayer()) {
+                    isLocked = layer->isLocked();
+                }
+
+                if (!isLocked && m_startPositions.contains(item)) {
                     QPointF startPos = m_startPositions[item];
                     QPointF endPos = item->pos();
                     QPointF itemDelta = endPos - startPos;

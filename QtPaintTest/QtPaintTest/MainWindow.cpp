@@ -22,6 +22,7 @@ MainWindow::MainWindow() : m_currentFrame(0) {
     setupTools();
     setupMenus();
     setupUndoRedo();
+	setupLayerPanel();
 
     // Set up animation timer
     m_animationTimer = new QTimer(this);
@@ -423,6 +424,22 @@ void MainWindow::setupUndoRedo() {
     undoDock->setWidget(undoView);
     addDockWidget(Qt::RightDockWidgetArea, undoDock);
 }
+void MainWindow::setupLayerPanel()
+{
+    m_layerPanel = new LayerPanel(this);
+    m_layerDock = new QDockWidget(tr("Layers"), this);
+    m_layerDock->setWidget(m_layerPanel);
+    m_layerDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    addDockWidget(Qt::RightDockWidgetArea, m_layerDock);
+
+    // Connect signals
+    /*connect(&LayerManager::getInstance(), &LayerManager::layerAdded,
+        this, &MainWindow::onLayerAdded);
+    connect(&LayerManager::getInstance(), &LayerManager::layerRemoved,
+        this, &MainWindow::onLayerRemoved);
+    connect(&LayerManager::getInstance(), &LayerManager::currentLayerChanged,
+        this, &MainWindow::onCurrentLayerChanged);*/
+}
 
 // Update color icon to smaller size
 QIcon MainWindow::createColorIcon(const QColor& color) {
@@ -480,6 +497,9 @@ void MainWindow::onFrameSelected(int frame) {
     if (m_onionSkinEnabled) {
         updateOnionSkin();
     }
+
+    LayerManager::getInstance().setScene(m_frames[frame]);
+    m_layerPanel->updateLayerList();
 }
 
 void MainWindow::onAddFrame() {
@@ -534,6 +554,8 @@ void MainWindow::onAddFrame() {
     if (wasOnionSkinEnabled) {
         toggleOnionSkin(true);
     }
+
+    initFrameLayers(m_frames.last());
 }
 
 void MainWindow::onRemoveFrame() {
@@ -674,5 +696,17 @@ void MainWindow::addOnionSkinFrame(int frameIndex, float opacityMultiplier) {
             // Add to group for easy management
             group->addToGroup(newItem);
         }
+    }
+}
+
+void MainWindow::initFrameLayers(DrawingScene* scene)
+{
+    // Set the scene in layer manager
+    LayerManager::getInstance().setScene(scene);
+
+    // Create a default layer if none exists
+    if (LayerManager::getInstance().getLayerCount() == 0) {
+        Layer* defaultLayer = LayerManager::getInstance().createLayer(tr("Background"));
+        LayerManager::getInstance().setCurrentLayer(defaultLayer);
     }
 }

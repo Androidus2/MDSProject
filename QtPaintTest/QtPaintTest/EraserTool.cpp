@@ -262,11 +262,24 @@ void EraserTool::finalizeEraserStroke() {
     QList<StrokeItem*> originalItemsAffected;
     QList<StrokeItem*> resultingItems;
 
-    // Process only the strokes that the eraser actually intersects, excluding onion skins
+    // Process only the strokes that the eraser actually intersects, excluding onion skins and locked layers
     for (QGraphicsItem* item : intersectingItems) {
         if (auto stroke = dynamic_cast<StrokeItem*>(item)) {
             // Skip items that are part of onion skin groups
             if (stroke->parentItem()) {
+                continue;
+            }
+
+            // Check if item is in a locked layer
+            bool isLocked = false;
+            if (auto baseItem = dynamic_cast<BaseItem*>(stroke)) {
+                if (Layer* layer = baseItem->getLayer()) {
+                    isLocked = layer->isLocked();
+                }
+            }
+
+            // Skip items in locked layers
+            if (isLocked) {
                 continue;
             }
 

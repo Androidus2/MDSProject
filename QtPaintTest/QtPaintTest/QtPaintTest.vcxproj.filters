@@ -51,6 +51,12 @@
     <Filter Include="Source Files\DrawingEngine\Items">
       <UniqueIdentifier>{943405df-01d7-44f7-a638-3ae09cc768ac}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Layers">
+      <UniqueIdentifier>{958d84af-37fd-4cec-8672-78ec4421dbe9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Layers">
+      <UniqueIdentifier>{8eb31a9e-ab9a-48bd-981b-159b00d25697}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="QtPaintTest.qrc">
@@ -139,6 +145,15 @@
     <ClCompile Include="RasterItem.cpp">
       <Filter>Source Files\DrawingEngine\Items</Filter>
     </ClCompile>
+    <ClCompile Include="Layer.cpp">
+      <Filter>Source Files\Layers</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerManager.cpp">
+      <Filter>Source Files\Layers</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerPanel.cpp">
+      <Filter>Source Files\Layers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\ClipFileLoad.h">
@@ -226,6 +241,18 @@
     </QtMoc>
     <QtMoc Include="DrawingManager.h">
       <Filter>Header Files\DrawingEngine</Filter>
+    </QtMoc>
+    <QtMoc Include="Layer.h">
+      <Filter>Header Files\Layers</Filter>
+    </QtMoc>
+    <QtMoc Include="LayerManager.h">
+      <Filter>Header Files\Layers</Filter>
+    </QtMoc>
+    <QtMoc Include="LayerPanel.h">
+      <Filter>Header Files\Layers</Filter>
+    </QtMoc>
+    <QtMoc Include="LayerListItem.h">
+      <Filter>Header Files\Layers</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>
