@@ -44,9 +44,6 @@
     <ClCompile Include="Tester.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tst_StrokeItem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\QtPaintTest\Clipper2Lib\src\clipper.engine.cpp">
       <Filter>Clipper\ClipperSRC</Filter>
     </ClCompile>
@@ -121,6 +118,9 @@
     </ClCompile>
     <ClCompile Include="..\QtPaintTest\TimelineWidget.cpp">
       <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="tst_StrokeItem.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

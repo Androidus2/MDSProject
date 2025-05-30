@@ -10,4 +10,11 @@ private slots:
     void testSetOutlined();
     void testSelection();
     void testClone();
+    void testColorAndWidth();
+    void testOutlined();
+    void testCloneIndependence();
+    void testOpacity();
+    void testDefaultValues();
+    void testOpacityLimits();
+     
 };
