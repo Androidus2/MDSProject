@@ -1,17 +1,23 @@
 #pragma once
 #include <QtWidgets>
 
+class Layer;
+
 class BaseItem : public QGraphicsPathItem {
 public:
-	BaseItem();
-	virtual ~BaseItem() = default;
+    BaseItem();
+    virtual ~BaseItem() = default;
 
-	virtual void setSelected(bool selected);
-	bool isSelected() const { return m_isSelected; }
+    virtual void setSelected(bool selected);
+    bool isSelected() const { return m_isSelected; }
 
-	virtual BaseItem* clone() const = 0;
+    virtual BaseItem* clone() const = 0;
+
+    // Layer support
+    Layer* getLayer() const { return m_layer; }
+    void setLayer(Layer* layer);
 
 protected:
-	bool m_isSelected = false;
-	// For the future, if layers are implemented, they should be handled here
+    bool m_isSelected = false;
+    Layer* m_layer = nullptr;
 };

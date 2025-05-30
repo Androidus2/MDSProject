@@ -119,6 +119,14 @@
     <ClCompile Include="EraserTool.cpp" />
     <ClCompile Include="FileIOOperations.cpp" />
     <ClCompile Include="FillTool.cpp" />
+    <ClCompile Include="Layer.cpp" />
+    <ClCompile Include="LayerManager.cpp" />
+    <ClCompile Include="LayerPanel.cpp">
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
+    </ClCompile>
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="ManipulatableGraphicsView.cpp" />
     <ClCompile Include="MoveCommand.cpp" />
@@ -158,6 +166,10 @@
     <QtMoc Include="FrameItem.h" />
     <QtMoc Include="ManipulatableGraphicsView.h" />
     <ClInclude Include="FillTool.h" />
+    <QtMoc Include="Layer.h" />
+    <QtMoc Include="LayerManager.h" />
+    <QtMoc Include="LayerPanel.h" />
+    <QtMoc Include="LayerListItem.h" />
     <ClInclude Include="MoveCommand.h" />
     <ClInclude Include="RasterItem.h" />
     <ClInclude Include="RemoveCommand.h" />

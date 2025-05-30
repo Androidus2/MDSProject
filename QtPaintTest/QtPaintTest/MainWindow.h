@@ -5,6 +5,7 @@
 #include "DrawingScene.h"
 #include "TimelineWidget.h"
 #include "ManipulatableGraphicsView.h"
+#include "LayerPanel.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -28,6 +29,7 @@ private:
     void setupMenus();
     void setupTools();
     void setupUndoRedo();
+    void setupLayerPanel();
     QIcon createColorIcon(const QColor& color);
 
     void selectColor();
@@ -40,6 +42,9 @@ private:
     QSpinBox* m_brushSizeSpinBox;
     TimelineWidget* m_timeline;
     QTimer* m_animationTimer;
+
+    LayerPanel* m_layerPanel;
+    QDockWidget* m_layerDock;
 
     bool m_onionSkinEnabled = false;
     int m_onionSkinOpacity = 30; // Default 30% opacity
@@ -55,4 +60,6 @@ private:
 
     void updateOnionSkin();
     void addOnionSkinFrame(int frameIndex, float opacityMultiplier = 1.0f);
+
+    void initFrameLayers(DrawingScene* scene);
 };
