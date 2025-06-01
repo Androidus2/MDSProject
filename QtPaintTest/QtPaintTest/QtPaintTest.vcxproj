@@ -143,6 +143,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AddBaseItemCommand.h" />
     <ClInclude Include="AddCommand.h" />
     <ClInclude Include="BaseItem.h" />
     <ClInclude Include="BaseTool.h" />
