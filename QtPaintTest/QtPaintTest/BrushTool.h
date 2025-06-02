@@ -16,8 +16,22 @@ public:
 	void keyPressEvent(QKeyEvent* event) override;
 	void keyReleaseEvent(QKeyEvent* event) override;
 
+<<<<<<< Updated upstream
 	QString toolName() const override { return "Brush"; }
 	QIcon toolIcon() const override { return QIcon("icons/brush.png"); }
+=======
+    QString toolName() const override { return "Brush"; }
+    QIcon toolIcon() const override { return QIcon("icons/brush.png"); }
+    // Smoothing function
+    QPointF smoothPoint(const QPointF& newPoint);
+
+
+    // Brush Implementation
+    void startBrushStroke(const QPointF& pos);
+    void updateBrushStroke(const QPointF& pos);
+    void finalizeBrushStroke();
+
+>>>>>>> Stashed changes
 
 private slots:
 	void commitBrushSegment();
@@ -28,6 +42,7 @@ private:
 	void optimizePath(QPainterPath& path, StrokeItem* pathItem);
 	void updateTemporaryPath(QGraphicsPathItem* tempItem);
 
+<<<<<<< Updated upstream
 	// Brush Implementation
 	void startBrushStroke(const QPointF& pos);
 	void updateBrushStroke(const QPointF& pos);
@@ -37,6 +52,14 @@ private:
 	StrokeItem* m_currentPath = nullptr;
 	QGraphicsPathItem* m_tempPathItem = nullptr;
 	QPainterPath m_realPath;
+=======
+    
+   
+    StrokeItem* m_currentPath = nullptr;
+    QGraphicsPathItem* m_tempPathItem = nullptr;
+    QGraphicsEllipseItem* m_cursorIndicator = nullptr; // Visual cursor indicator
+    QPainterPath m_realPath;
+>>>>>>> Stashed changes
 
 	QVector<QPointF> m_points;
 

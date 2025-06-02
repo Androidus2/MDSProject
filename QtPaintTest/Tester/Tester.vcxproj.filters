@@ -122,6 +122,21 @@
     <ClCompile Include="tst_StrokeItem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tst_BrushTool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tst_EraserToolcpp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Layer.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\LayerPanel.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\LayerManager.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Tester.h">
@@ -146,6 +161,24 @@
       <Filter>Header Files\OriginalHeaders</Filter>
     </QtMoc>
     <QtMoc Include="..\QtPaintTest\TimelineWidget.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="tst_BrushTool.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="tst_EraserTool.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\Layer.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\LayerManager.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\LayerListItem.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\LayerPanel.h">
       <Filter>Header Files\OriginalHeaders</Filter>
     </QtMoc>
   </ItemGroup>

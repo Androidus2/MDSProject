@@ -65,7 +65,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\alexa\Documents\Alex\Facultate\An2\Sem2\MDS\QtPaintTest\QtPaintTest;$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>$(SolutionDir)QtPaintTest;$(ProjectDir);$(SolutionDir)QtPaintTest\Clipper2Lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -113,6 +117,9 @@
     <ClCompile Include="..\QtPaintTest\EraserTool.cpp" />
     <ClCompile Include="..\QtPaintTest\FileIOOperations.cpp" />
     <ClCompile Include="..\QtPaintTest\FillTool.cpp" />
+    <ClCompile Include="..\QtPaintTest\Layer.cpp" />
+    <ClCompile Include="..\QtPaintTest\LayerManager.cpp" />
+    <ClCompile Include="..\QtPaintTest\LayerPanel.cpp" />
     <ClCompile Include="..\QtPaintTest\MainWindow.cpp" />
     <ClCompile Include="..\QtPaintTest\ManipulatableGraphicsView.cpp" />
     <ClCompile Include="..\QtPaintTest\MoveCommand.cpp" />
@@ -126,6 +133,8 @@
     <ClCompile Include="..\QtPaintTest\Utils\clipper.svg.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Tester.cpp" />
+    <ClCompile Include="tst_BrushTool.cpp" />
+    <ClCompile Include="tst_EraserToolcpp.cpp" />
     <ClCompile Include="tst_StrokeItem.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
@@ -150,11 +159,17 @@
     <ClInclude Include="..\QtPaintTest\EraserTool.h" />
     <ClInclude Include="..\QtPaintTest\FileIOOperations.h" />
     <ClInclude Include="..\QtPaintTest\FillTool.h" />
+    <QtMoc Include="..\QtPaintTest\Layer.h" />
+    <QtMoc Include="..\QtPaintTest\LayerManager.h" />
+    <QtMoc Include="..\QtPaintTest\LayerListItem.h" />
+    <QtMoc Include="..\QtPaintTest\LayerPanel.h" />
     <ClInclude Include="..\QtPaintTest\MoveCommand.h" />
     <ClInclude Include="..\QtPaintTest\RasterItem.h" />
     <ClInclude Include="..\QtPaintTest\RemoveCommand.h" />
     <ClInclude Include="..\QtPaintTest\SelectTool.h" />
     <ClInclude Include="..\QtPaintTest\StrokeItem.h" />
+    <QtMoc Include="tst_EraserTool.h" />
+    <QtMoc Include="tst_BrushTool.h" />
     <QtMoc Include="..\QtPaintTest\TimelineWidget.h" />
     <QtMoc Include="..\QtPaintTest\ManipulatableGraphicsView.h" />
     <QtMoc Include="..\QtPaintTest\MainWindow.h" />

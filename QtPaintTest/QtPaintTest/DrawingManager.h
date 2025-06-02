@@ -98,6 +98,7 @@ public:
 	bool hasModifications() const {
 		return m_undoStack && m_undoStack->canUndo();
 	}
+
 private:
 
 	DrawingScene* m_scene = nullptr;
