@@ -14,7 +14,7 @@ public:
 
     // QGraphicsItem interface override
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
-
+    QImage getImage() const { return m_image; }
 private:
     QImage m_image;
 };

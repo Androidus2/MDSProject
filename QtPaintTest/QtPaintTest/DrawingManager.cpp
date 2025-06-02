@@ -1,6 +1,7 @@
 #include "DrawingManager.h"
 #include "RemoveCommand.h"
 #include "AddCommand.h"
+#include "AddBaseItemCommand.h"
 
 void log(const QString& message) {
 	// Open the file and append the message
@@ -46,17 +47,29 @@ void DrawingManager::setUndoStack(QUndoStack* stack) {
 
 // Clipboard Operations
 void DrawingManager::copySelection() {
-	if (m_currentTool->toolName() != "Select") return;
+    if (m_currentTool->toolName() != "Select") return;
     m_clipboard.clear();
 
-	QList<BaseItem*> selectedItems = static_cast<SelectTool*>(m_currentTool)->getSelectedItems();
+    QList<BaseItem*> selectedItems = static_cast<SelectTool*>(m_currentTool)->getSelectedItems();
 
     for (BaseItem* baseItem : selectedItems) {
-		StrokeItem* item = static_cast<StrokeItem*>(baseItem);
-        if (!item->isOutlined()) {
-            item->convertToFilledPath();
+        // Check item type before casting
+        if (StrokeItem* strokeItem = dynamic_cast<StrokeItem*>(baseItem)) {
+            // Handle stroke items
+            if (!strokeItem->isOutlined()) {
+                strokeItem->convertToFilledPath();
+            }
+            m_clipboard.append(ClipboardItem(
+                strokeItem->path(), 
+                strokeItem->color(), 
+                strokeItem->width(), 
+                strokeItem->isOutlined()
+            ));
         }
-        m_clipboard.append({ item->path(), item->color(), item->width(), item->isOutlined() });
+        else if (RasterItem* rasterItem = dynamic_cast<RasterItem*>(baseItem)) {
+            // Handle raster items
+            m_clipboard.append(ClipboardItem(rasterItem->getImage()));
+        }
     }
 }
 
@@ -78,21 +91,28 @@ void DrawingManager::cutSelection() {
 }
 
 void DrawingManager::pasteClipboard() {
-    
     if (m_clipboard.isEmpty()) return;
 
-	if (m_currentTool->toolName() != "Select")
-		m_currentTool = m_tools[3]; // Switch to SelectTool for pasting
+    if (m_currentTool->toolName() != "Select")
+        m_currentTool = m_tools[3]; // Switch to SelectTool for pasting
     static_cast<SelectTool*>(m_currentTool)->clearSelection();
 
     // Calculate the bounding rect of all clipboard items
     QRectF clipboardBounds;
     for (const auto& ci : m_clipboard) {
         if (clipboardBounds.isNull()) {
-            clipboardBounds = ci.path.boundingRect();
-        }
-        else {
-            clipboardBounds = clipboardBounds.united(ci.path.boundingRect());
+            if (ci.type == ClipboardItemType::Stroke) {
+                clipboardBounds = ci.path.boundingRect();
+            } else {
+                clipboardBounds = QRectF(0, 0, ci.image.width(), ci.image.height());
+            }
+        } else {
+            if (ci.type == ClipboardItemType::Stroke) {
+                clipboardBounds = clipboardBounds.united(ci.path.boundingRect());
+            } else {
+                QRectF imageBounds(0, 0, ci.image.width(), ci.image.height());
+                clipboardBounds = clipboardBounds.united(imageBounds);
+            }
         }
     }
 
@@ -103,31 +123,44 @@ void DrawingManager::pasteClipboard() {
     QList<BaseItem*> pastedItems;
 
     for (const auto& ci : m_clipboard) {
-        StrokeItem* item = new StrokeItem(ci.color, ci.width);
-        item->setOutlined(ci.outlined);
+        if (ci.type == ClipboardItemType::Stroke) {
+            // Paste stroke item
+            StrokeItem* item = new StrokeItem(ci.color, ci.width);
+            item->setOutlined(ci.outlined);
 
-        QPainterPath movedPath = ci.path;
-        movedPath.translate(offsetToApply);
-        item->setPath(movedPath);
+            QPainterPath movedPath = ci.path;
+            movedPath.translate(offsetToApply);
+            item->setPath(movedPath);
 
-        if (ci.outlined) {
-            item->setBrush(QBrush(ci.color));
-            item->setPen(QPen(ci.color.darker(120), 0.5));
+            if (ci.outlined) {
+                item->setBrush(QBrush(ci.color));
+                item->setPen(QPen(ci.color.darker(120), 0.5));
+            } else {
+                QPen pen(ci.color, ci.width);
+                pen.setCapStyle(Qt::RoundCap);
+                pen.setJoinStyle(Qt::RoundJoin);
+                item->setPen(pen);
+                item->setBrush(Qt::NoBrush);
+            }
+
+            AddCommand* cmd = new AddCommand(m_scene, item);
+            pushCommand(cmd);
+            pastedItems.append(item);
+        } 
+        else if (ci.type == ClipboardItemType::Raster) {
+            // Paste raster item
+            RasterItem* item = new RasterItem(ci.image);
+            item->setPos(m_lastSceneMousePos);
+            
+            // Add to scene via command for undo/redo support
+            // We need a new command type for adding BaseItems
+            AddBaseItemCommand* cmd = new AddBaseItemCommand(m_scene, item);
+            pushCommand(cmd);
+            pastedItems.append(item);
         }
-        else {
-            QPen pen(ci.color, ci.width);
-            pen.setCapStyle(Qt::RoundCap);
-            pen.setJoinStyle(Qt::RoundJoin);
-            item->setPen(pen);
-            item->setBrush(Qt::NoBrush);
-        }
-
-        AddCommand* cmd = new AddCommand(m_scene, item);
-        pushCommand(cmd);
-        pastedItems.append(item);
     }
 
-	static_cast<SelectTool*>(m_currentTool)->setSelectedItems(pastedItems);
+    static_cast<SelectTool*>(m_currentTool)->setSelectedItems(pastedItems);
 }
 
 void DrawingManager::mousePressEvent(QGraphicsSceneMouseEvent* event) {

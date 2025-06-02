@@ -222,6 +222,9 @@
     <ClInclude Include="RasterItem.h">
       <Filter>Header Files\DrawingEngine\Items</Filter>
     </ClInclude>
+    <ClInclude Include="AddBaseItemCommand.h">
+      <Filter>Header Files\Commands</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="DrawingScene.h">
