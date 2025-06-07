@@ -37,12 +37,6 @@ void Layer::setLocked(bool locked)
     if (m_locked != locked) {
         m_locked = locked;
 
-        // Update movable/selectable state of all items in this layer
-        for (BaseItem* item : m_items) {
-            /*item->setFlag(QGraphicsItem::ItemIsMovable, !m_locked);
-            item->setFlag(QGraphicsItem::ItemIsSelectable, !m_locked);*/
-        }
-
         emit lockStateChanged(m_locked);
     }
 }

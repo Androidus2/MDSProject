@@ -7,9 +7,6 @@ RemoveCommand::RemoveCommand(DrawingScene* scene, BaseItem* item, QUndoCommand* 
 }
 
 RemoveCommand::~RemoveCommand() {
-    // QUndoStack manages command deletion. We assume the item's lifetime
-    // is managed elsewhere (e.g., by the scene or another command like EraseCommand)
-    // unless explicitly handled (like in AddCommand's destructor).
 }
 
 void RemoveCommand::undo() {

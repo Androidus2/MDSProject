@@ -18,9 +18,6 @@ SelectTool::~SelectTool() {
         delete m_selectionRect;
         m_selectionRect = nullptr;
     }
-
-    // Clean up transform handles
-    removeSelectionBox();
 }
 
 void SelectTool::mousePressEvent(QGraphicsSceneMouseEvent* event) {
