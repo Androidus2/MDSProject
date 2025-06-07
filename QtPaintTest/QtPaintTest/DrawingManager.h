@@ -18,6 +18,10 @@ private:
 	DrawingManager(const DrawingManager&) = delete;
 	DrawingManager& operator=(const DrawingManager&) = delete;
 public:
+	~DrawingManager() override {
+		m_scene = nullptr;
+	}
+
 	static DrawingManager& getInstance() {
 		static DrawingManager instance;
 		return instance;

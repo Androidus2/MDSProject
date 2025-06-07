@@ -15,24 +15,6 @@ EraseCommand::~EraseCommand() {
         // Result items were removed from scene by undo(), we own them now.
         qDeleteAll(resultItems);
     }
-    else {
-        // Original items were removed by redo() or initial execution.
-        // If stack is cleared, we might own them.
-        // Check if originals are still in the scene.
-        bool originalsInScene = false;
-        if (myScene && !originalItems.isEmpty()) {
-            QList<QGraphicsItem*> sceneItems = myScene->items();
-            for (StrokeItem* item : originalItems) {
-                if (sceneItems.contains(item)) {
-                    originalsInScene = true;
-                    break;
-                }
-            }
-        }
-        if (!originalsInScene) {
-            qDeleteAll(originalItems);
-        }
-    }
     originalItems.clear();
     resultItems.clear();
 }
