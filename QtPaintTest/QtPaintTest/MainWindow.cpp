@@ -349,6 +349,11 @@ void MainWindow::setupMenus() {
         FileIOOperations::exportGIF(*this);
         });
 
+    QAction* exportWeb = exportMenu->addAction("Export to Web...");
+    connect(exportWeb, &QAction::triggered, this, [this]() {
+        FileIOOperations::exportApp(*this);
+        });
+
     fileMenu->addSeparator();
 
     // Exit action

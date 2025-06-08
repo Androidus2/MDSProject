@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebTest</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .animation-container {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            background-color: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .controls {
+            margin: 15px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .frame-info {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .slider-container {
+            margin: 15px 0;
+        }
+        input[type=range] {
+            width: 80%;
+            max-width: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebTest</h1>
+        <div class="animation-container">
+            <img src="frame_0000.png" id="animation" alt="Animation frame">
+        </div>
+        <div class="frame-info">
+            Frame: <span id="frameNumber">1</span> / 6
+        </div>
+        <div class="slider-container">
+            <input type="range" min="0" max="5" value="0" class="slider" id="frameSlider">
+        </div>
+        <div class="controls">
+            <button id="prevBtn">Previous</button>
+            <button id="playBtn">Play</button>
+            <button id="nextBtn">Next</button>
+        </div>
+    </div>
+
+    <script>
+        // Animation frames
+        const frames = ['frame_0000.png', 'frame_0001.png', 'frame_0002.png', 'frame_0003.png', 'frame_0004.png', 'frame_0005.png'];
+
+        // Animation variables
+        let currentFrame = 0;
+        let isPlaying = false;
+        let animationInterval;
+        const frameDelay = 166;
+
+        // DOM elements
+        const animationImg = document.getElementById('animation');
+        const frameNumber = document.getElementById('frameNumber');
+        const frameSlider = document.getElementById('frameSlider');
+        const playBtn = document.getElementById('playBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Update the display with the current frame
+        function updateDisplay() {
+            animationImg.src = frames[currentFrame];
+            frameNumber.textContent = currentFrame + 1;
+            frameSlider.value = currentFrame;
+        }
+
+        // Go to the next frame
+        function nextFrame() {
+            currentFrame = (currentFrame + 1) % frames.length;
+            updateDisplay();
+        }
+
+        // Go to the previous frame
+        function prevFrame() {
+            currentFrame = (currentFrame - 1 + frames.length) % frames.length;
+            updateDisplay();
+        }
+
+        // Toggle play/pause
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playBtn.textContent = 'Pause';
+                animationInterval = setInterval(nextFrame, frameDelay);
+            } else {
+                playBtn.textContent = 'Play';
+                clearInterval(animationInterval);
+            }
+        }
+
+        // Event listeners
+        playBtn.addEventListener('click', togglePlay);
+        prevBtn.addEventListener('click', () => {
+            if (isPlaying) togglePlay();
+            prevFrame();
+        });
+        nextBtn.addEventListener('click', () => {
+            if (isPlaying) togglePlay();
+            nextFrame();
+        });
+        frameSlider.addEventListener('input', () => {
+            if (isPlaying) togglePlay();
+            currentFrame = parseInt(frameSlider.value);
+            updateDisplay();
+        });
+
+        // Initialize with the first frame
+        updateDisplay();
+    </script>
+</body>
+</html>
