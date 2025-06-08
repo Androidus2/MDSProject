@@ -349,6 +349,11 @@ void MainWindow::setupMenus() {
         FileIOOperations::exportGIF(*this);
         });
 
+    QAction* exportMP4 = exportMenu->addAction("Export as &MP4...");
+    connect(exportMP4, &QAction::triggered, this, [this]() {
+        FileIOOperations::exportMP4(*this);
+        });
+
     QAction* exportWeb = exportMenu->addAction("Export to Web...");
     connect(exportWeb, &QAction::triggered, this, [this]() {
         FileIOOperations::exportApp(*this);

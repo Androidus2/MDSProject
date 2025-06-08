@@ -22,5 +22,6 @@ public:
     static void exportPNG(QGraphicsScene& scene, MainWindow& window);
     static void exportJPEG(QGraphicsScene& scene, MainWindow& window);
     static void exportGIF(MainWindow& window);
+    static void exportMP4(MainWindow& window);
     static void exportApp(MainWindow& window);
 };
