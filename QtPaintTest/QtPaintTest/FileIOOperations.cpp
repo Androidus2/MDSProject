@@ -757,6 +757,270 @@ void FileIOOperations::exportGIF(MainWindow& window) {
         window.statusBar()->showMessage("Exported to animated GIF", 2000);
     }
 }
+void FileIOOperations::exportMP4(MainWindow& window) {
+    QString fileName = QFileDialog::getSaveFileName(&window,
+        "Export MP4 Video", "", "MP4 Files (*.mp4)");
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    if (!fileName.endsWith(".mp4", Qt::CaseInsensitive)) {
+        fileName += ".mp4";
+    }
+
+    // Get frames from the MainWindow
+    QList<DrawingScene*> frames = window.getFrames();
+
+    if (frames.isEmpty()) {
+        QMessageBox::warning(&window, "Export Error", "No frames available for video export");
+        return;
+    }
+
+    // Create a dialog for settings
+    QDialog settingsDialog(&window);
+    settingsDialog.setWindowTitle("MP4 Export Settings");
+    settingsDialog.setModal(true);
+
+    QVBoxLayout* layout = new QVBoxLayout(&settingsDialog);
+
+    // Frame rate setting
+    QHBoxLayout* fpsLayout = new QHBoxLayout();
+    QLabel* fpsLabel = new QLabel("Frame Rate (FPS):", &settingsDialog);
+    QSpinBox* fpsInput = new QSpinBox(&settingsDialog);
+    fpsInput->setRange(1, 60);
+    fpsInput->setValue(24); // Default 24 FPS
+    fpsLayout->addWidget(fpsLabel);
+    fpsLayout->addWidget(fpsInput);
+
+    // Resolution settings
+    QHBoxLayout* resLayout = new QHBoxLayout();
+    QLabel* resLabel = new QLabel("Resolution:", &settingsDialog);
+
+    // Get the first frame's dimensions as default
+    QRectF sceneRect = frames.first()->sceneRect();
+
+    QSpinBox* widthInput = new QSpinBox(&settingsDialog);
+    widthInput->setRange(1, 7680); // Up to 8K
+    widthInput->setValue(sceneRect.width());
+
+    QSpinBox* heightInput = new QSpinBox(&settingsDialog);
+    heightInput->setRange(1, 4320); // Up to 8K
+    heightInput->setValue(sceneRect.height());
+
+    resLayout->addWidget(resLabel);
+    resLayout->addWidget(widthInput);
+    resLayout->addWidget(new QLabel("x", &settingsDialog));
+    resLayout->addWidget(heightInput);
+
+    // Quality setting
+    QHBoxLayout* qualityLayout = new QHBoxLayout();
+    QLabel* qualityLabel = new QLabel("Quality:", &settingsDialog);
+    QComboBox* qualityCombo = new QComboBox(&settingsDialog);
+    qualityCombo->addItem("Low (Fast Encoding)", "23");
+    qualityCombo->addItem("Medium", "20");
+    qualityCombo->addItem("High (Slower Encoding)", "18");
+    qualityCombo->addItem("Very High (Slowest Encoding)", "15");
+    qualityCombo->setCurrentIndex(1); // Medium quality default
+    qualityLayout->addWidget(qualityLabel);
+    qualityLayout->addWidget(qualityCombo);
+
+    // Frame range
+    QHBoxLayout* rangeLayout = new QHBoxLayout();
+    QLabel* rangeLabel = new QLabel("Frame Range:", &settingsDialog);
+    QSpinBox* startFrameInput = new QSpinBox(&settingsDialog);
+    startFrameInput->setRange(1, frames.size());
+    startFrameInput->setValue(1);
+
+    QSpinBox* endFrameInput = new QSpinBox(&settingsDialog);
+    endFrameInput->setRange(1, frames.size());
+    endFrameInput->setValue(frames.size());
+
+    rangeLayout->addWidget(rangeLabel);
+    rangeLayout->addWidget(startFrameInput);
+    rangeLayout->addWidget(new QLabel("to", &settingsDialog));
+    rangeLayout->addWidget(endFrameInput);
+
+    // Background color option
+    QHBoxLayout* bgLayout = new QHBoxLayout();
+    QLabel* bgLabel = new QLabel("Background:", &settingsDialog);
+    QComboBox* bgCombo = new QComboBox(&settingsDialog);
+    bgCombo->addItem("Transparent (with alpha)", "transparent");
+    bgCombo->addItem("White", "white");
+    bgCombo->addItem("Black", "black");
+    bgCombo->addItem("Custom Color...", "custom");
+    bgLayout->addWidget(bgLabel);
+    bgLayout->addWidget(bgCombo);
+
+    // Custom color widget (hidden initially)
+    QColorDialog* colorDialog = new QColorDialog(&settingsDialog);
+    colorDialog->setOption(QColorDialog::ShowAlphaChannel, true);
+    colorDialog->setCurrentColor(Qt::white);
+    QPushButton* colorButton = new QPushButton("Choose Color...", &settingsDialog);
+    colorButton->setVisible(false);
+    bgLayout->addWidget(colorButton);
+
+    // Connect color dialog
+    QObject::connect(bgCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index) {
+        colorButton->setVisible(bgCombo->currentData().toString() == "custom");
+        });
+
+    QObject::connect(colorButton, &QPushButton::clicked, [=]() {
+        colorDialog->exec();
+        });
+
+    // Buttons
+    QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &settingsDialog);
+    QObject::connect(buttonBox, &QDialogButtonBox::accepted, &settingsDialog, &QDialog::accept);
+    QObject::connect(buttonBox, &QDialogButtonBox::rejected, &settingsDialog, &QDialog::reject);
+
+    // Add all widgets to dialog
+    layout->addLayout(fpsLayout);
+    layout->addLayout(resLayout);
+    layout->addLayout(qualityLayout);
+    layout->addLayout(rangeLayout);
+    layout->addLayout(bgLayout);
+    layout->addWidget(buttonBox);
+
+    // Show dialog and proceed if accepted
+    if (settingsDialog.exec() == QDialog::Accepted) {
+        int fps = fpsInput->value();
+        int width = widthInput->value();
+        int height = heightInput->value();
+        int startFrame = startFrameInput->value() - 1; // Convert to 0-based index
+        int endFrame = endFrameInput->value() - 1;     // Convert to 0-based index
+        QString quality = qualityCombo->currentData().toString();
+
+        // Get background color
+        QColor bgColor;
+        QString bgType = bgCombo->currentData().toString();
+        if (bgType == "transparent") {
+            bgColor = Qt::transparent;
+        }
+        else if (bgType == "white") {
+            bgColor = Qt::white;
+        }
+        else if (bgType == "black") {
+            bgColor = Qt::black;
+        }
+        else if (bgType == "custom") {
+            bgColor = colorDialog->currentColor();
+        }
+
+        // Create temporary directory for the frames
+        QTemporaryDir tempDir;
+        if (!tempDir.isValid()) {
+            QMessageBox::warning(&window, "Export Error", "Failed to create temporary directory");
+            return;
+        }
+
+        // Get the temporary directory path
+        QString tempDirPath = QDir::toNativeSeparators(tempDir.path());
+
+        // Create progress dialog
+        QProgressDialog progress("Creating MP4 video...", "Cancel", 0, (endFrame - startFrame + 2), &window);
+        progress.setWindowModality(Qt::WindowModal);
+        progress.show();
+
+        // Step 1: Render each frame to a PNG file
+        for (int i = startFrame; i <= endFrame; i++) {
+            progress.setValue(i - startFrame);
+            QApplication::processEvents();
+
+            if (progress.wasCanceled()) {
+                return;
+            }
+
+            // Create the frame image
+            QImage frameImage(width, height, QImage::Format_ARGB32);
+            frameImage.fill(bgColor);
+
+            QPainter painter(&frameImage);
+            painter.setRenderHint(QPainter::Antialiasing);
+            painter.setRenderHint(QPainter::SmoothPixmapTransform);
+            frames[i]->render(&painter, QRectF(0, 0, width, height), frames[i]->sceneRect());
+            painter.end();
+
+            // Save the frame as a PNG file
+            QString framePath = QString("%1/frame_%2.png").arg(tempDirPath).arg(i - startFrame, 4, 10, QChar('0'));
+            frameImage.save(framePath, "PNG");
+        }
+
+        // Step 2: Find the FFmpeg executable
+        QString ffmpegPath = "ffmpeg";
+
+        // Step 3: Use FFmpeg to create the MP4
+        QStringList arguments;
+
+        // Input framerate
+        arguments << "-framerate" << QString::number(fps);
+
+        // Input pattern
+        arguments << "-i" << QString("%1/frame_%2.png").arg(tempDirPath).arg("%04d");
+
+        // Video codec settings
+        arguments << "-c:v" << "libx264";
+        arguments << "-crf" << quality;
+        arguments << "-preset" << "medium";
+
+        // Set pixel format (yuv420p is widely compatible)
+        arguments << "-pix_fmt" << "yuv420p";
+
+        // Additional video settings
+        arguments << "-vf" << QString("scale=%1:%2").arg(width).arg(height);
+
+        // Output file (overwrite if exists)
+        arguments << "-y" << QDir::toNativeSeparators(fileName);
+
+        // Show command in debug output
+        qDebug() << "FFmpeg command:" << ffmpegPath << arguments.join(" ");
+
+        // Update progress dialog
+        progress.setLabelText("Processing with FFmpeg...");
+        progress.setValue(endFrame - startFrame + 1);
+
+        // Start the FFmpeg process
+        QProcess ffmpeg;
+        ffmpeg.start(ffmpegPath, arguments);
+
+        // Wait for it to start
+        if (!ffmpeg.waitForStarted(3000)) {
+            QMessageBox::warning(&window, "Export Error",
+                "Failed to start FFmpeg. Make sure FFmpeg is installed and in your PATH.");
+            return;
+        }
+
+        // Wait for FFmpeg to finish
+        if (!ffmpeg.waitForFinished(-1)) {
+            QMessageBox::warning(&window, "Export Error", "FFmpeg process failed.");
+            return;
+        }
+
+        // Check for errors
+        if (ffmpeg.exitCode() != 0) {
+            QString errorOutput = QString::fromLocal8Bit(ffmpeg.readAllStandardError());
+            QMessageBox::warning(&window, "FFmpeg Error",
+                "FFmpeg exited with an error:\n" + errorOutput);
+            return;
+        }
+
+        // Complete progress
+        progress.setValue(endFrame - startFrame + 2);
+
+        // Success
+        window.statusBar()->showMessage("Exported to MP4 video", 2000);
+
+        // Ask if the user wants to open the video
+        QMessageBox::StandardButton reply = QMessageBox::question(&window,
+            "Export Complete",
+            "MP4 video exported successfully. Would you like to open it now?",
+            QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::Yes) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(fileName));
+        }
+    }
+}
 void FileIOOperations::exportApp(MainWindow& window) {
     // First prompt for the save location
     QString saveDir = QFileDialog::getExistingDirectory(&window,
