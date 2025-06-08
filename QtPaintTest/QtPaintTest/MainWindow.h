@@ -13,6 +13,11 @@ public:
     MainWindow();
     ~MainWindow();
 
+    QList<DrawingScene*> getFrames() const { return m_frames; }
+
+    // Add Q_PROPERTY for reflection access
+    Q_PROPERTY(QList<DrawingScene*> frames READ getFrames)
+
 private slots:
     void onFrameSelected(int frame);
     void onAddFrame();

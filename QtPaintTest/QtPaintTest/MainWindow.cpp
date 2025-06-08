@@ -344,6 +344,11 @@ void MainWindow::setupMenus() {
         FileIOOperations::exportJPEG(*m_frames[m_currentFrame], *this);
         });
 
+    QAction* exportGIF = exportMenu->addAction("Export as &GIF...");
+    connect(exportGIF, &QAction::triggered, this, [this]() {
+        FileIOOperations::exportGIF(*this);
+        });
+
     fileMenu->addSeparator();
 
     // Exit action
