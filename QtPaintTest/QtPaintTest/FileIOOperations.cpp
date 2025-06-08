@@ -758,72 +758,322 @@ void FileIOOperations::exportGIF(MainWindow& window) {
     }
 }
 void FileIOOperations::exportApp(MainWindow& window) {
-    // Get frames and settings (same as before)
+    // First prompt for the save location
+    QString saveDir = QFileDialog::getExistingDirectory(&window,
+        "Choose Export Directory",
+        QDir::homePath(),
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+    if (saveDir.isEmpty()) {
+        return; // User canceled
+    }
+
+    // Optional: Ask for project name (used for the folder and HTML title)
+    bool ok;
+    QString projectName = QInputDialog::getText(&window, "Project Name",
+        "Enter a name for your animation:",
+        QLineEdit::Normal,
+        "MyAnimation", &ok);
+    if (!ok || projectName.isEmpty()) {
+        projectName = "Animation";
+    }
+
+    // Create a subdirectory with the project name
+    QDir dir(saveDir);
+    if (!dir.mkdir(projectName) && !dir.exists(projectName)) {
+        QMessageBox::warning(&window, "Export Error",
+            "Could not create directory: " + saveDir + "/" + projectName);
+        return;
+    }
+
+    // Enter the project directory
+    dir.cd(projectName);
+    QString exportDir = dir.absolutePath();
+
+    // Get frames from the MainWindow
     QList<DrawingScene*> frames = window.getFrames();
 
-    // Create a QMovie to write the GIF
-    QList<QImage> images;
+    if (frames.isEmpty()) {
+        QMessageBox::warning(&window, "Export Error", "No frames available for export");
+        return;
+    }
+
+    // Create settings dialog
+    QDialog settingsDialog(&window);
+    settingsDialog.setWindowTitle("Web Animation Settings");
+    settingsDialog.setModal(true);
+
+    QVBoxLayout* layout = new QVBoxLayout(&settingsDialog);
+
+    // FPS setting
+    QHBoxLayout* fpsLayout = new QHBoxLayout();
+    QLabel* fpsLabel = new QLabel("Frame Rate (FPS):", &settingsDialog);
+    QSpinBox* fpsInput = new QSpinBox(&settingsDialog);
+    fpsInput->setRange(1, 60);
+    fpsInput->setValue(24); // Default 24 FPS
+    fpsLayout->addWidget(fpsLabel);
+    fpsLayout->addWidget(fpsInput);
+
+    // Resolution settings
+    QHBoxLayout* resLayout = new QHBoxLayout();
+    QLabel* resLabel = new QLabel("Resolution:", &settingsDialog);
+
+    // Get the first frame's dimensions as default
+    QRectF sceneRect = frames.first()->sceneRect();
+
+    QSpinBox* widthInput = new QSpinBox(&settingsDialog);
+    widthInput->setRange(1, 10000);
+    widthInput->setValue(sceneRect.width());
+
+    QSpinBox* heightInput = new QSpinBox(&settingsDialog);
+    heightInput->setRange(1, 10000);
+    heightInput->setValue(sceneRect.height());
+
+    resLayout->addWidget(resLabel);
+    resLayout->addWidget(widthInput);
+    resLayout->addWidget(new QLabel("x", &settingsDialog));
+    resLayout->addWidget(heightInput);
+
+    // Buttons
+    QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &settingsDialog);
+    QObject::connect(buttonBox, &QDialogButtonBox::accepted, &settingsDialog, &QDialog::accept);
+    QObject::connect(buttonBox, &QDialogButtonBox::rejected, &settingsDialog, &QDialog::reject);
+
+    // Add all widgets to dialog
+    layout->addLayout(fpsLayout);
+    layout->addLayout(resLayout);
+    layout->addWidget(buttonBox);
+
+    // Show dialog and proceed if accepted
+    if (settingsDialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    int fps = fpsInput->value();
+    int width = widthInput->value();
+    int height = heightInput->value();
+
+    // Create progress dialog
+    QProgressDialog progress("Exporting web animation...", "Cancel", 0, frames.size(), &window);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.show();
 
     // Render each frame
+    QList<QString> frameFiles;
     for (int i = 0; i < frames.size(); i++) {
-        QImage frameImage(frames[i]->sceneRect().size().toSize(), QImage::Format_ARGB32);
+        progress.setValue(i);
+        QApplication::processEvents();
+
+        if (progress.wasCanceled()) {
+            return;
+        }
+
+        // Create the frame image
+        QImage frameImage(width, height, QImage::Format_ARGB32);
         frameImage.fill(Qt::transparent);
 
         QPainter painter(&frameImage);
         painter.setRenderHint(QPainter::Antialiasing);
-        frames[i]->render(&painter);
+        painter.setRenderHint(QPainter::SmoothPixmapTransform);
+        frames[i]->render(&painter, QRectF(0, 0, width, height), frames[i]->sceneRect());
         painter.end();
 
-        images.append(frameImage);
+        // Save the frame as a PNG file
+        QString frameFilename = QString("frame_%1.png").arg(i, 4, 10, QChar('0'));
+        QString framePath = exportDir + "/" + frameFilename;
+        frameImage.save(framePath, "PNG");
+        frameFiles.append(frameFilename); // Just the filename, not the full path
     }
 
-    // Export individual frames and create a basic HTML page to preview the animation
-    QTemporaryDir tempDir;
-    QFile htmlFile(tempDir.path() + "/animation.html");
-    if (htmlFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&htmlFile);
-        out << "<!DOCTYPE html>\n<html>\n<head>\n<title>Application Preview</title>\n";
-        out << "<style>\n.animation { width: 100%; text-align: center; }\n";
-        out << "img { border: 1px solid #ddd; }\n</style>\n</head>\n<body>\n";
-        out << "<div class='animation'>\n";
-        out << "<img src='frame_0000.png' id='animframe'>\n";
-        out << "<p>Frame: <span id='framenum'>1</span> / " << images.size() << "</p>\n";
-        out << "<button onclick='toggleAnimation()'>Play/Pause</button>\n";
-        out << "</div>\n";
-        out << "<script>\n";
-        out << "let frames = [";
+    // Create HTML file
+    QString htmlPath = exportDir + "/index.html";
+    QFile htmlFile(htmlPath);
 
-        for (int i = 0; i < images.size(); i++) {
-            QString framePath = QString("frame_%1.png").arg(i, 4, 10, QChar('0'));
-            images[i].save(tempDir.path() + "/" + framePath, "PNG");
-
-            if (i > 0) out << ", ";
-            out << "'" << framePath << "'";
-        }
-
-        out << "];\n";
-        out << "let currentFrame = 0;\n";
-        out << "let isPlaying = false;\n";
-        out << "let interval;\n";
-        out << "function updateFrame() {\n";
-        out << "  document.getElementById('animframe').src = frames[currentFrame];\n";
-        out << "  document.getElementById('framenum').textContent = currentFrame + 1;\n";
-        out << "  currentFrame = (currentFrame + 1) % frames.length;\n";
-        out << "}\n";
-        out << "function toggleAnimation() {\n";
-        out << "  if (isPlaying) {\n";
-        out << "    clearInterval(interval);\n";
-        out << "    isPlaying = false;\n";
-        out << "  } else {\n";
-        out << "    interval = setInterval(updateFrame, " << (1000 / 8) << ");\n";
-        out << "    isPlaying = true;\n";
-        out << "  }\n";
-        out << "}\n";
-        out << "</script>\n";
-        out << "</body>\n</html>";
-        htmlFile.close();
-
-        // Open the preview
-        QDesktopServices::openUrl(QUrl::fromLocalFile(htmlFile.fileName()));
+    if (!htmlFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(&window, "Export Error",
+            "Failed to create HTML file: " + htmlPath);
+        return;
     }
+
+    QTextStream out(&htmlFile);
+
+    // Write improved HTML with better UI
+    out << "<!DOCTYPE html>\n"
+        << "<html lang=\"en\">\n"
+        << "<head>\n"
+        << "    <meta charset=\"UTF-8\">\n"
+        << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+        << "    <title>" << projectName << "</title>\n"
+        << "    <style>\n"
+        << "        body {\n"
+        << "            font-family: Arial, sans-serif;\n"
+        << "            background-color: #f5f5f5;\n"
+        << "            margin: 0;\n"
+        << "            padding: 20px;\n"
+        << "            text-align: center;\n"
+        << "        }\n"
+        << "        .container {\n"
+        << "            max-width: 900px;\n"
+        << "            margin: 0 auto;\n"
+        << "            background-color: white;\n"
+        << "            border-radius: 8px;\n"
+        << "            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n"
+        << "            padding: 20px;\n"
+        << "        }\n"
+        << "        h1 {\n"
+        << "            color: #333;\n"
+        << "        }\n"
+        << "        .animation-container {\n"
+        << "            margin: 20px 0;\n"
+        << "            border: 1px solid #ddd;\n"
+        << "            background-color: #fafafa;\n"
+        << "            padding: 10px;\n"
+        << "            border-radius: 4px;\n"
+        << "        }\n"
+        << "        img {\n"
+        << "            max-width: 100%;\n"
+        << "            height: auto;\n"
+        << "            display: block;\n"
+        << "            margin: 0 auto;\n"
+        << "        }\n"
+        << "        .controls {\n"
+        << "            margin: 15px 0;\n"
+        << "        }\n"
+        << "        button {\n"
+        << "            background-color: #4CAF50;\n"
+        << "            border: none;\n"
+        << "            color: white;\n"
+        << "            padding: 8px 16px;\n"
+        << "            text-align: center;\n"
+        << "            text-decoration: none;\n"
+        << "            display: inline-block;\n"
+        << "            font-size: 16px;\n"
+        << "            margin: 4px 2px;\n"
+        << "            cursor: pointer;\n"
+        << "            border-radius: 4px;\n"
+        << "        }\n"
+        << "        button:hover {\n"
+        << "            background-color: #45a049;\n"
+        << "        }\n"
+        << "        .frame-info {\n"
+        << "            margin: 10px 0;\n"
+        << "            font-size: 14px;\n"
+        << "            color: #666;\n"
+        << "        }\n"
+        << "        .slider-container {\n"
+        << "            margin: 15px 0;\n"
+        << "        }\n"
+        << "        input[type=range] {\n"
+        << "            width: 80%;\n"
+        << "            max-width: 500px;\n"
+        << "        }\n"
+        << "    </style>\n"
+        << "</head>\n"
+        << "<body>\n"
+        << "    <div class=\"container\">\n"
+        << "        <h1>" << projectName << "</h1>\n"
+        << "        <div class=\"animation-container\">\n"
+        << "            <img src=\"" << frameFiles[0] << "\" id=\"animation\" alt=\"Animation frame\">\n"
+        << "        </div>\n"
+        << "        <div class=\"frame-info\">\n"
+        << "            Frame: <span id=\"frameNumber\">1</span> / " << frames.size() << "\n"
+        << "        </div>\n"
+        << "        <div class=\"slider-container\">\n"
+        << "            <input type=\"range\" min=\"0\" max=\"" << (frames.size() - 1) << "\" value=\"0\" class=\"slider\" id=\"frameSlider\">\n"
+        << "        </div>\n"
+        << "        <div class=\"controls\">\n"
+        << "            <button id=\"prevBtn\">Previous</button>\n"
+        << "            <button id=\"playBtn\">Play</button>\n"
+        << "            <button id=\"nextBtn\">Next</button>\n"
+        << "        </div>\n"
+        << "    </div>\n"
+        << "\n"
+        << "    <script>\n"
+        << "        // Animation frames\n"
+        << "        const frames = [";
+
+    // Add frame filenames
+    for (int i = 0; i < frameFiles.size(); i++) {
+        if (i > 0) out << ", ";
+        out << "'" << frameFiles[i] << "'";
+    }
+
+    out << "];\n\n"
+        << "        // Animation variables\n"
+        << "        let currentFrame = 0;\n"
+        << "        let isPlaying = false;\n"
+        << "        let animationInterval;\n"
+        << "        const frameDelay = " << (1000 / fps) << ";\n"
+        << "\n"
+        << "        // DOM elements\n"
+        << "        const animationImg = document.getElementById('animation');\n"
+        << "        const frameNumber = document.getElementById('frameNumber');\n"
+        << "        const frameSlider = document.getElementById('frameSlider');\n"
+        << "        const playBtn = document.getElementById('playBtn');\n"
+        << "        const prevBtn = document.getElementById('prevBtn');\n"
+        << "        const nextBtn = document.getElementById('nextBtn');\n"
+        << "\n"
+        << "        // Update the display with the current frame\n"
+        << "        function updateDisplay() {\n"
+        << "            animationImg.src = frames[currentFrame];\n"
+        << "            frameNumber.textContent = currentFrame + 1;\n"
+        << "            frameSlider.value = currentFrame;\n"
+        << "        }\n"
+        << "\n"
+        << "        // Go to the next frame\n"
+        << "        function nextFrame() {\n"
+        << "            currentFrame = (currentFrame + 1) % frames.length;\n"
+        << "            updateDisplay();\n"
+        << "        }\n"
+        << "\n"
+        << "        // Go to the previous frame\n"
+        << "        function prevFrame() {\n"
+        << "            currentFrame = (currentFrame - 1 + frames.length) % frames.length;\n"
+        << "            updateDisplay();\n"
+        << "        }\n"
+        << "\n"
+        << "        // Toggle play/pause\n"
+        << "        function togglePlay() {\n"
+        << "            isPlaying = !isPlaying;\n"
+        << "            if (isPlaying) {\n"
+        << "                playBtn.textContent = 'Pause';\n"
+        << "                animationInterval = setInterval(nextFrame, frameDelay);\n"
+        << "            } else {\n"
+        << "                playBtn.textContent = 'Play';\n"
+        << "                clearInterval(animationInterval);\n"
+        << "            }\n"
+        << "        }\n"
+        << "\n"
+        << "        // Event listeners\n"
+        << "        playBtn.addEventListener('click', togglePlay);\n"
+        << "        prevBtn.addEventListener('click', () => {\n"
+        << "            if (isPlaying) togglePlay();\n"
+        << "            prevFrame();\n"
+        << "        });\n"
+        << "        nextBtn.addEventListener('click', () => {\n"
+        << "            if (isPlaying) togglePlay();\n"
+        << "            nextFrame();\n"
+        << "        });\n"
+        << "        frameSlider.addEventListener('input', () => {\n"
+        << "            if (isPlaying) togglePlay();\n"
+        << "            currentFrame = parseInt(frameSlider.value);\n"
+        << "            updateDisplay();\n"
+        << "        });\n"
+        << "\n"
+        << "        // Initialize with the first frame\n"
+        << "        updateDisplay();\n"
+        << "    </script>\n"
+        << "</body>\n"
+        << "</html>";
+
+    htmlFile.close();
+
+    // Complete progress
+    progress.setValue(frames.size());
+
+    // Open the animation in the browser
+    QDesktopServices::openUrl(QUrl::fromLocalFile(htmlPath));
+
+    QMessageBox::information(&window, "Web Export Complete",
+        "Animation exported to: " + htmlPath);
 }
