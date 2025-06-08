@@ -1,7 +1,6 @@
 #include "FileIOOperations.h"
 #include "DrawingScene.h"
 #include "DrawingManager.h"
-#include "GifEncoder.h"
 
 QString FileIOOperations::currentFilePath = "";
 

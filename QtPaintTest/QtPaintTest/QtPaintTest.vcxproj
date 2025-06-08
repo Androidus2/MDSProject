@@ -121,7 +121,6 @@
     <ClCompile Include="EraserTool.cpp" />
     <ClCompile Include="FileIOOperations.cpp" />
     <ClCompile Include="FillTool.cpp" />
-    <ClCompile Include="GifEncoder.cpp" />
     <ClCompile Include="Layer.cpp" />
     <ClCompile Include="LayerManager.cpp" />
     <ClCompile Include="LayerPanel.cpp">
@@ -174,7 +173,6 @@
     <QtMoc Include="LayerManager.h" />
     <QtMoc Include="LayerPanel.h" />
     <QtMoc Include="LayerListItem.h" />
-    <ClInclude Include="GifEncoder.h" />
     <ClInclude Include="MoveCommand.h" />
     <ClInclude Include="RasterItem.h" />
     <ClInclude Include="RemoveCommand.h" />

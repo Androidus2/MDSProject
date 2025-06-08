@@ -154,9 +154,6 @@
     <ClCompile Include="LayerPanel.cpp">
       <Filter>Source Files\Layers</Filter>
     </ClCompile>
-    <ClCompile Include="GifEncoder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\ClipFileLoad.h">
@@ -227,9 +224,6 @@
     </ClInclude>
     <ClInclude Include="AddBaseItemCommand.h">
       <Filter>Header Files\Commands</Filter>
-    </ClInclude>
-    <ClInclude Include="GifEncoder.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
