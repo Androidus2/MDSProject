@@ -36,7 +36,7 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
-    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtInstall>6.8.2_msvc2022_64</QtInstall>
     <QtModules>core;testlib;gui;widgets;opengl;openglwidgets;svg;</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
@@ -113,6 +113,9 @@
     <ClCompile Include="..\QtPaintTest\EraserTool.cpp" />
     <ClCompile Include="..\QtPaintTest\FileIOOperations.cpp" />
     <ClCompile Include="..\QtPaintTest\FillTool.cpp" />
+    <ClCompile Include="..\QtPaintTest\Layer.cpp" />
+    <ClCompile Include="..\QtPaintTest\LayerManager.cpp" />
+    <ClCompile Include="..\QtPaintTest\LayerPanel.cpp" />
     <ClCompile Include="..\QtPaintTest\MainWindow.cpp" />
     <ClCompile Include="..\QtPaintTest\ManipulatableGraphicsView.cpp" />
     <ClCompile Include="..\QtPaintTest\MoveCommand.cpp" />
@@ -126,6 +129,9 @@
     <ClCompile Include="..\QtPaintTest\Utils\clipper.svg.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Tester.cpp" />
+    <ClCompile Include="tst_ClipboardItem.cpp" />
+    <ClCompile Include="tst_Layer.cpp" />
+    <ClCompile Include="tst_RasterItem.cpp" />
     <ClCompile Include="tst_StrokeItem.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
@@ -150,6 +156,13 @@
     <ClInclude Include="..\QtPaintTest\EraserTool.h" />
     <ClInclude Include="..\QtPaintTest\FileIOOperations.h" />
     <ClInclude Include="..\QtPaintTest\FillTool.h" />
+    <QtMoc Include="tst_RasterItem.h" />
+    <QtMoc Include="tst_Layer.h" />
+    <QtMoc Include="tst_ClipboardItem.h" />
+    <QtMoc Include="..\QtPaintTest\Layer.h" />
+    <QtMoc Include="..\QtPaintTest\LayerListItem.h" />
+    <QtMoc Include="..\QtPaintTest\LayerManager.h" />
+    <QtMoc Include="..\QtPaintTest\LayerPanel.h" />
     <ClInclude Include="..\QtPaintTest\MoveCommand.h" />
     <ClInclude Include="..\QtPaintTest\RasterItem.h" />
     <ClInclude Include="..\QtPaintTest\RemoveCommand.h" />

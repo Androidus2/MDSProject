@@ -1,10 +1,12 @@
 #include <QTest>
 #include "Tester.h"
 #include "tst_StrokeItem.h"
-#include "tst_BrushTool.h"
-#include "tst_EraserTool.h"
+#include "tst_ClipboardItem.h"
+#include "tst_Layer.h"
+#include "tst_RasterItem.h"
 
 int main(int argc, char** argv) {
+    QApplication app(argc, argv);
     int status = 0;
 
     {
@@ -18,13 +20,18 @@ int main(int argc, char** argv) {
     }
 
     {
-        tst_BrushTool brushToolTest;
-        status |= QTest::qExec(&brushToolTest, argc, argv);
+        ClipboardItemTest clipboardItemTest;
+        status |= QTest::qExec(&clipboardItemTest, argc, argv);
     }
 
     {
-        tst_EraserTool eraserToolTest;
-        status |= QTest::qExec(&eraserToolTest, argc, argv);
+        LayerTest layerTest;
+        status |= QTest::qExec(&layerTest, argc, argv);
+    }
+
+    {
+        RasterItemTest rasterItemTest;
+        status |= QTest::qExec(&rasterItemTest, argc, argv);
     }
 
     return status;
