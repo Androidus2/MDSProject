@@ -24,13 +24,13 @@ void FileIOOperations::newDrawing(QGraphicsScene& scene, MainWindow& window) {
 
         scene.clear();
         currentFilePath = "";
-        window.setWindowTitle("Qt Vector Drawing - Untitled");
+        window.setWindowTitle("Vecmate - Untitled");
     }
 }
 void FileIOOperations::loadDrawing(QGraphicsScene& scene, MainWindow& window) {
     if (maybeSave(scene, window)) {
         QString fileName = QFileDialog::getOpenFileName(&window,
-            "Open Drawing", "", "Qt Vector Drawing (*.qvd)");
+            "Open Drawing", "", "Vecmate (*.qvd)");
 
         if (!fileName.isEmpty()) {
             loadFile(fileName, scene, window);
@@ -47,7 +47,7 @@ void FileIOOperations::saveDrawing(QGraphicsScene& scene, MainWindow& window) {
 }
 void FileIOOperations::saveDrawingAs(QGraphicsScene& scene, MainWindow& window) {
     QString fileName = QFileDialog::getSaveFileName(&window,
-        "Save Drawing", "", "Qt Vector Drawing (*.qvd)");
+        "Save Drawing", "", "Vecmate (*.qvd)");
 
     if (!fileName.isEmpty()) {
         if (!fileName.endsWith(".qvd", Qt::CaseInsensitive)) {
@@ -154,7 +154,7 @@ bool FileIOOperations::saveFile(const QString& fileName, const QGraphicsScene& s
     file.write(doc.toJson());
 
     currentFilePath = fileName;
-    window.setWindowTitle("Qt Vector Drawing - " + QFileInfo(fileName).fileName());
+    window.setWindowTitle("Vecmate - " + QFileInfo(fileName).fileName());
     window.statusBar()->showMessage("Drawing saved", 2000);
     return true;
 }
@@ -294,7 +294,7 @@ bool FileIOOperations::loadFile(const QString& fileName, QGraphicsScene& scene, 
     }
 
     currentFilePath = fileName;
-    window.setWindowTitle("Qt Vector Drawing - " + QFileInfo(fileName).fileName());
+    window.setWindowTitle("Vecmate - " + QFileInfo(fileName).fileName());
     window.statusBar()->showMessage("Drawing loaded", 2000);
     return true;
 }
@@ -327,8 +327,8 @@ void FileIOOperations::exportSVG(QGraphicsScene& scene, MainWindow& window) {
         generator.setFileName(fileName);
         generator.setSize(QSize(scene.width(), scene.height()));
         generator.setViewBox(QRect(0, 0, scene.width(), scene.height()));
-        generator.setTitle("Qt Vector Drawing");
-        generator.setDescription("Created with Qt Vector Drawing App");
+        generator.setTitle("Vecmate Drawing");
+        generator.setDescription("Created with Vecmate");
 
         QPainter painter;
         painter.begin(&generator);
