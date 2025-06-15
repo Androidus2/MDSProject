@@ -122,6 +122,24 @@
     <ClCompile Include="tst_StrokeItem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\QtPaintTest\Layer.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\LayerManager.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtPaintTest\LayerPanel.cpp">
+      <Filter>Source Files\OriginalSources</Filter>
+    </ClCompile>
+    <ClCompile Include="tst_ClipboardItem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tst_Layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tst_RasterItem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Tester.h">
@@ -147,6 +165,27 @@
     </QtMoc>
     <QtMoc Include="..\QtPaintTest\TimelineWidget.h">
       <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\Layer.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\LayerListItem.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\LayerManager.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtPaintTest\LayerPanel.h">
+      <Filter>Header Files\OriginalHeaders</Filter>
+    </QtMoc>
+    <QtMoc Include="tst_ClipboardItem.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="tst_Layer.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="tst_RasterItem.h">
+      <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
